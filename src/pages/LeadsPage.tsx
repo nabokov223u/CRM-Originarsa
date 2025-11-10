@@ -9,8 +9,8 @@ import { exportToCSV, exportToJSON, exportToExcel } from '../utils/export';
 interface LeadsPageProps {
   leads: Lead[];
   onAddLead: (lead: Omit<Lead, 'id'>) => void;
-  onUpdateLead: (id: string, lead: Partial<Lead>) => void;
-  onDeleteLead: (id: string) => void;
+  onUpdateLead: (id: number, lead: Partial<Lead>) => void;
+  onDeleteLead: (id: number) => void;
   showModal?: boolean;
   setShowModal?: (show: boolean) => void;
 }

@@ -1,5 +1,5 @@
 export interface Lead {
-  id: string;
+  id: number;
   nombres: string;
   apellidos: string;
   telefono: string;
@@ -13,8 +13,6 @@ export interface Lead {
   presupuesto?: number;
   notas?: string;
   asignadoA?: string;
-  createdAt?: any; // Firebase Timestamp
-  updatedAt?: any; // Firebase Timestamp
 }
 
 export interface Cliente {
