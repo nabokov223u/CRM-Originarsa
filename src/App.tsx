@@ -3,7 +3,7 @@ import { Layout } from './components/Layout';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Dashboard } from './pages/Dashboard';
-import { LeadsPage } from './pages/LeadsPage';
+import { LeadsPageKanban } from './pages/LeadsPageKanban';
 import { ClientesPage } from './pages/ClientesPage';
 import { Button } from './components/Button';
 import { Lead, Cliente, Actividad } from './utils/types';
@@ -14,6 +14,7 @@ import { clientesService } from './services/firestore/clientes';
 const actividadesDemoData: Actividad[] = [
   {
     id: "1",
+    leadId: "demo1",
     tipo: 'Llamada',
     titulo: 'Seguimiento a cliente',
     descripcion: 'Llamar para agendar test drive',
@@ -21,7 +22,8 @@ const actividadesDemoData: Actividad[] = [
     completada: false,
   },
   {
-    id: "2", 
+    id: "2",
+    leadId: "demo2", 
     tipo: 'Reunión',
     titulo: 'Presentación de modelos',
     descripcion: 'Mostrar opciones disponibles',
@@ -35,7 +37,6 @@ function App() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [actividades] = useState<Actividad[]>(actividadesDemoData);
-  const [showLeadModal, setShowLeadModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,47 +74,6 @@ function App() {
       console.error("❌ Error cargando clientes:", err);
       // En caso de error, usar datos vacíos
       setClientes([]);
-    }
-  };
-
-  // CRUD para leads con Firebase
-  const handleAddLead = async (newLead: Omit<Lead, 'id'>) => {
-    try {
-      console.log('🔄 Creando nuevo lead...');
-      await unifiedLeadsService.create(newLead);
-      console.log('✅ Lead creado exitosamente');
-      await loadLeads(); // Recargar lista
-      setShowLeadModal(false);
-    } catch (err) {
-      console.error("❌ Error agregando lead:", err);
-      alert("Error al agregar el lead. Por favor, intenta de nuevo.");
-    }
-  };
-
-  const handleUpdateLead = async (id: string, updatedData: Partial<Lead>) => {
-    try {
-      console.log('🔄 Actualizando lead:', id);
-      await unifiedLeadsService.update(id, updatedData);
-      console.log('✅ Lead actualizado exitosamente');
-      await loadLeads(); // Recargar lista
-    } catch (err) {
-      console.error("❌ Error actualizando lead:", err);
-      alert("Error al actualizar el lead. Por favor, intenta de nuevo.");
-    }
-  };
-
-  const handleDeleteLead = async (id: string) => {
-    if (!window.confirm("¿Estás seguro de que quieres eliminar este lead?")) {
-      return;
-    }
-    try {
-      console.log('🔄 Eliminando lead:', id);
-      await unifiedLeadsService.delete(id);
-      console.log('✅ Lead eliminado exitosamente');
-      await loadLeads(); // Recargar lista
-    } catch (err) {
-      console.error("❌ Error eliminando lead:", err);
-      alert("Error al eliminar el lead. Por favor, intenta de nuevo.");
     }
   };
 
@@ -163,14 +123,7 @@ function App() {
         return <Dashboard leads={leads} actividades={actividades} />;
       case 'leads':
         return (
-          <LeadsPage
-            leads={leads}
-            onAddLead={handleAddLead}
-            onUpdateLead={handleUpdateLead}
-            onDeleteLead={handleDeleteLead}
-            showModal={showLeadModal}
-            setShowModal={setShowLeadModal}
-          />
+          <LeadsPageKanban />
         );
       case 'clientes':
         return <ClientesPage clientes={clientes} />;
@@ -225,11 +178,6 @@ function App() {
         <Header
           title={headerInfo.title}
           subtitle={headerInfo.subtitle}
-          actions={
-            activeTab === 'leads' ? (
-              <Button onClick={() => setShowLeadModal(true)}>+ Nuevo Lead</Button>
-            ) : null
-          }
         />
       }
     >

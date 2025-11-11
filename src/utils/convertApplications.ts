@@ -8,9 +8,11 @@ export function convertApplicationToLead(application: Application): Omit<Lead, '
   // Determinar el status basado en el loan status
   let status: Lead['status'] = 'Nuevo';
   if (application.status === 'approved') {
-    status = 'Aprobado';
+    status = 'Calificado'; // Cambiado de 'Aprobado' a 'Calificado' para el nuevo flujo
   } else if (application.status === 'rejected') {
     status = 'Perdido';
+  } else {
+    status = 'Nuevo'; // pending o cualquier otro
   }
 
   // Crear fecha de creación
@@ -46,21 +48,23 @@ export function convertApplicationToLead(application: Application): Omit<Lead, '
     idNumber: application.applicant.idNumber || 'Sin cédula',
     maritalStatus: application.applicant.maritalStatus,
     
-    // Campos del CRM
+    // Campos del CRM - Estados del pipeline
     status: status,
+    prioridad: application.status === 'approved' ? 'Alta' : 'Media', // Alta prioridad si está aprobado
     fuente: 'CrediExpress',
     fechaCreacion: fechaCreacion,
-    ultimaInteraccion: fechaCreacion,
+    fechaUltimoContacto: fechaCreacion,
     
     // Información del vehículo/préstamo
     vehicleAmount: application.loan.vehicleAmount || 0,
     downPaymentPct: application.loan.downPaymentPct,
     termMonths: application.loan.termMonths,
+    creditScore: application.score, // Score del algoritmo de CrediExpress
     
-    // Campos adicionales
-    modelo: 'Por definir',
-    notas: notasArray.join('\n'),
-    asignadoA: 'CrediExpress',
+    // Gestión comercial
+    vehiculoInteres: 'Por definir',
+    observaciones: notasArray.join('\n'),
+    asignadoA: undefined, // Sin asignar inicialmente
     
     // Firebase
     createdAt: application.createdAt,
@@ -72,5 +76,8 @@ export function convertApplicationToLead(application: Application): Omit<Lead, '
     telefono: application.applicant.phone,
     cedula: application.applicant.idNumber,
     presupuesto: application.loan.vehicleAmount,
+    modelo: 'Por definir',
+    notas: notasArray.join('\n'),
+    ultimaInteraccion: fechaCreacion,
   };
 }
