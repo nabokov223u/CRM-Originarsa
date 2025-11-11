@@ -2,41 +2,18 @@ import { useState, useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
-import { Dashboard } from './pages/Dashboard';
+import { Dashboard } from './pages/DashboardNew';
 import { LeadsPageKanban } from './pages/LeadsPageKanban';
 import { ClientesPage } from './pages/ClientesPage';
 import { Button } from './components/Button';
-import { Lead, Cliente, Actividad } from './utils/types';
+import { Lead, Cliente } from './utils/types';
 import { unifiedLeadsService } from './services/unifiedLeads';
 import { clientesService } from './services/firestore/clientes';
-
-// Datos de ejemplo para actividades (temporal)
-const actividadesDemoData: Actividad[] = [
-  {
-    id: "1",
-    leadId: "demo1",
-    tipo: 'Llamada',
-    titulo: 'Seguimiento a cliente',
-    descripcion: 'Llamar para agendar test drive',
-    fecha: '2025-11-07T14:00:00',
-    completada: false,
-  },
-  {
-    id: "2",
-    leadId: "demo2", 
-    tipo: 'Reunión',
-    titulo: 'Presentación de modelos',
-    descripcion: 'Mostrar opciones disponibles',
-    fecha: '2025-11-07T16:00:00',
-    completada: false,
-  },
-];
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [leads, setLeads] = useState<Lead[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [actividades] = useState<Actividad[]>(actividadesDemoData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -120,7 +97,7 @@ function App() {
 
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard leads={leads} actividades={actividades} />;
+        return <Dashboard leads={leads} />;
       case 'leads':
         return (
           <LeadsPageKanban />
@@ -152,7 +129,7 @@ function App() {
           </div>
         );
       default:
-        return <Dashboard leads={leads} actividades={actividades} />;
+        return <Dashboard leads={leads} />;
     }
   };
 
