@@ -54,12 +54,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
     !['Ganado', 'Perdido', 'Nutrición'].includes(l.status)
   ).length;
 
-  // 🎯 TASA DE CONTACTABILIDAD: (Contactados + estados superiores) / Total
-  const leadsContactados = leads.filter(l => 
-    ['Contactado', 'Calificado', 'Negociación', 'Documentación', 'Ganado'].includes(l.status)
+  // 🎯 TASA DE CONTACTABILIDAD: (Calificados + estados superiores) / Total
+  // Mide el éxito de contactar y calificar leads (paso de Contactado → Calificado)
+  const leadsCalificadosOMas = leads.filter(l => 
+    ['Calificado', 'Negociación', 'Documentación', 'Ganado'].includes(l.status)
   ).length;
   const tasaContactabilidad = leads.length > 0 
-    ? Math.round((leadsContactados / leads.length) * 100) 
+    ? Math.round((leadsCalificadosOMas / leads.length) * 100) 
     : 0;
 
   // Tasa de conversión: Ganados / Total

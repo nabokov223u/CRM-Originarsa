@@ -5,21 +5,16 @@ import type { Lead } from './types';
 export function convertApplicationToLead(application: Application): Omit<Lead, 'id'> {
   // ✅ Estructura de datos corregida - usando applicant.* y status directo
 
-  // Determinar el status basado en crmStatus si existe, sino usar el status de CrediExpress
+  // Determinar el status basado en crmStatus si existe, sino siempre "Nuevo" para nuevos leads de CrediExpress
   let status: Lead['status'] = 'Nuevo';
   
   if (application.crmStatus) {
     // Si tiene un estado del CRM guardado, usarlo directamente
     status = application.crmStatus as Lead['status'];
   } else {
-    // Si no, mapear desde el status de CrediExpress
-    if (application.status === 'approved') {
-      status = 'Calificado'; // Cambiado de 'Aprobado' a 'Calificado' para el nuevo flujo
-    } else if (application.status === 'rejected') {
-      status = 'Perdido';
-    } else {
-      status = 'Nuevo'; // pending o cualquier otro
-    }
+    // Todos los nuevos leads de CrediExpress empiezan en "Nuevo"
+    // El asesor los mueve a Contactado y luego a Calificado
+    status = 'Nuevo';
   }
 
   // Crear fecha de creación
@@ -57,7 +52,7 @@ export function convertApplicationToLead(application: Application): Omit<Lead, '
     
     // Campos del CRM - Estados del pipeline
     status: status,
-    prioridad: application.status === 'approved' ? 'Alta' : 'Media', // Alta prioridad si está aprobado
+    prioridad: 'Media', // Todos empiezan en Media, el asesor puede cambiarla después
     fuente: 'CrediExpress',
     fechaCreacion: fechaCreacion,
     fechaUltimoContacto: fechaCreacion,
