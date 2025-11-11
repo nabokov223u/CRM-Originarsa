@@ -17,7 +17,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true); // Colapsado por defecto
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -28,14 +28,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   ];
 
   return (
-    <div className={`relative bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 bg-opacity-95 backdrop-blur-xl border-r border-slate-700/50 h-screen transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'} flex flex-col shadow-2xl`}>
-      {/* Overlay de gradiente para más profundidad */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-transparent to-purple-600/10 pointer-events-none"></div>
+    <div className={`fixed left-0 top-0 z-50 bg-slate-800/80 backdrop-blur-lg border-r border-slate-700/50 h-screen transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'} flex flex-col shadow-2xl`}>
+      {/* Overlay de gradiente sutil para profundidad */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-700/10 via-transparent to-slate-900/10 pointer-events-none"></div>
       
       {/* Contenido con z-index superior */}
       <div className="relative z-10 flex flex-col h-full">
         {/* Header */}
-        <div className="h-16 px-4 border-b border-slate-700/50 flex items-center justify-between backdrop-blur-sm">
+        <div className="h-16 px-4 border-b border-slate-700 flex items-center justify-between">
           {!isCollapsed && (
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/50">
@@ -49,7 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1.5 hover:bg-slate-700/50 rounded-md transition-colors text-slate-300 hover:text-white"
+            className="p-1.5 hover:bg-slate-700 rounded-md transition-colors text-slate-300 hover:text-white"
           >
             {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
@@ -68,8 +68,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
                     onClick={() => onTabChange(item.id)}
                     className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 font-medium text-sm ${
                       isActive
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-600/50'
-                        : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
+                        ? 'bg-slate-700 text-white'
+                        : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                     }`}
                     title={isCollapsed ? item.label : ''}
                   >
@@ -93,13 +93,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
 
         {/* Bottom Section */}
         {!isCollapsed && (
-          <div className="p-4 border-t border-slate-700/50 space-y-2">
-            <button className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-slate-300 hover:bg-slate-800/50 hover:text-white transition-all duration-200 text-sm">
+          <div className="p-4 border-t border-slate-700 space-y-2">
+            <button className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-200 text-sm">
               <Bell className="w-5 h-5" />
               <span>Notificaciones</span>
               <span className="ml-auto bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">3</span>
             </button>
-            <button className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-slate-300 hover:bg-slate-800/50 hover:text-white transition-all duration-200 text-sm">
+            <button className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-200 text-sm">
               <Settings className="w-5 h-5" />
               <span>Configuración</span>
             </button>
@@ -107,8 +107,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
         )}
 
         {/* User Profile */}
-        <div className="p-3 border-t border-slate-700/50">
-          <div className={`flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800/50 transition-colors ${isCollapsed ? 'justify-center' : ''}`}>
+        <div className="p-3 border-t border-slate-700">
+          <div className={`flex items-center gap-3 p-2 rounded-lg hover:bg-slate-700 transition-colors ${isCollapsed ? 'justify-center' : ''}`}>
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-lg">
               A
             </div>

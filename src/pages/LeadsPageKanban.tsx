@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Lead, LeadStatus, Actividad } from '../utils/types';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { LeadsTableView } from '../components/LeadsTableView';

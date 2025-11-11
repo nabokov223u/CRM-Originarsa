@@ -122,10 +122,11 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
       maritalStatus: formData.maritalStatus || undefined,
       status: formData.status,
       fuente: formData.fuente,
+      prioridad: 'Media' as const, // Campo requerido con tipo correcto
       fechaCreacion: new Date().toISOString().split('T')[0],
       ultimaInteraccion: new Date().toISOString().split('T')[0],
       // Información del vehículo/préstamo
-      vehicleAmount: formData.vehicleAmount ? parseFloat(formData.vehicleAmount) : undefined,
+      vehicleAmount: formData.vehicleAmount ? parseFloat(formData.vehicleAmount) : 0,
       downPaymentPct: formData.downPaymentPct ? parseFloat(formData.downPaymentPct) / 100 : undefined,
       termMonths: formData.termMonths ? parseInt(formData.termMonths) : undefined,
       modelo: formData.modelo || undefined,
@@ -303,7 +304,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                         lead.status === 'Nuevo' ? 'bg-blue-50 text-blue-700' :
                         lead.status === 'Contactado' ? 'bg-yellow-50 text-yellow-700' :
                         lead.status === 'Negociación' ? 'bg-orange-50 text-orange-700' :
-                        lead.status === 'Aprobado' ? 'bg-green-50 text-green-700' :
+                        lead.status === 'Ganado' ? 'bg-green-50 text-green-700' :
                         'bg-red-50 text-red-700'
                       }`}>
                         {lead.status}

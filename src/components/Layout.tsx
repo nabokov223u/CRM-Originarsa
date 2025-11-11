@@ -9,11 +9,11 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ sidebar, header, children }) => {
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
+      {/* Sidebar - Fixed overlay */}
       {sidebar}
       
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Main Content - Con margen izquierdo para el sidebar colapsado */}
+      <div className="flex-1 flex flex-col overflow-hidden ml-16">
         {/* Header */}
         {header}
         
