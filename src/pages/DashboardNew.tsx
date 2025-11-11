@@ -12,26 +12,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
   const [leads, setLeads] = useState<Lead[]>(externalLeads || []);
   const [loading, setLoading] = useState(!externalLeads);
 
-  // Cargar leads si no vienen como prop
+  // Cargar leads con suscripción en tiempo real si no vienen como prop
   useEffect(() => {
     if (!externalLeads) {
-      loadLeads();
+      setLoading(true);
+      console.log('🔄 Dashboard: Suscribiéndose a cambios en tiempo real...');
+      
+      // Suscribirse a cambios en tiempo real
+      const unsubscribe = unifiedLeadsService.subscribeToAllLeads((data) => {
+        console.log('✅ Dashboard: Leads actualizados en tiempo real:', data.length);
+        setLeads(data);
+        setLoading(false);
+      });
+
+      // Cleanup: cancelar suscripción al desmontar
+      return () => {
+        console.log('🔌 Dashboard: Desconectando suscripción en tiempo real');
+        unsubscribe();
+      };
     } else {
       setLeads(externalLeads);
     }
   }, [externalLeads]);
-
-  const loadLeads = async () => {
-    try {
-      setLoading(true);
-      const data = await unifiedLeadsService.getAllLeads();
-      setLeads(data);
-    } catch (error) {
-      console.error('Error cargando leads:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // ===== CÁLCULO DE MÉTRICAS DEL PIPELINE =====
   

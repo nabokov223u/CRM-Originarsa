@@ -54,8 +54,9 @@ export const unifiedLeadsService = {
       callback(allLeads);
     };
 
-    // Suscripción a leads del CRM (simulada - no tenemos onSnapshot para leads aún)
-    leadsService.getAll().then((leads) => {
+    // Suscripción a leads del CRM en tiempo real
+    const unsubscribeLeads = leadsService.subscribeToChanges((leads) => {
+      console.log(`🔄 ${leads.length} leads del CRM actualizados en tiempo real`);
       crmLeads = leads;
       updateCallback();
     });
@@ -67,8 +68,9 @@ export const unifiedLeadsService = {
       updateCallback();
     });
 
-    // Retornar función para cancelar suscripciones
+    // Retornar función para cancelar ambas suscripciones
     return () => {
+      unsubscribeLeads();
       unsubscribeApplications();
     };
   },
@@ -104,17 +106,21 @@ export const unifiedLeadsService = {
 
   // Actualizar estado de una application de CrediExpress
   async updateApplicationStatus(id: string, newStatus: string): Promise<void> {
-    // Mapear estados del CRM a estados de CrediExpress
-    let crediExpressStatus: "approved" | "rejected" | "pending" = "pending";
+    console.log(`🔄 Actualizando application ${id} a CRM status: ${newStatus}`);
     
-    if (newStatus === "Ganado" || newStatus === "Calificado") {
-      crediExpressStatus = "approved";
+    // Guardar el estado del CRM directamente (sin mapeo)
+    await applicationsService.updateCrmStatus(id, newStatus);
+    
+    // Opcionalmente, también actualizar el status de CrediExpress si es relevante
+    // Solo cambiamos el status de CrediExpress para estados finales
+    if (newStatus === "Ganado") {
+      await applicationsService.updateStatus(id, "approved");
     } else if (newStatus === "Perdido") {
-      crediExpressStatus = "rejected";
-    } else {
-      crediExpressStatus = "pending";
+      await applicationsService.updateStatus(id, "rejected");
     }
+    // Para otros estados (Nuevo, Contactado, Calificado, Negociación, Documentación, Nutrición)
+    // solo guardamos en crmStatus, manteniendo el status original de CrediExpress
     
-    return applicationsService.updateStatus(id, crediExpressStatus);
+    console.log(`✅ Application ${id} actualizada a CRM status: ${newStatus}`);
   },
 };

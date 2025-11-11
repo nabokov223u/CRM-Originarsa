@@ -8,7 +8,8 @@ import {
   query,
   orderBy,
   where,
-  Timestamp 
+  Timestamp,
+  onSnapshot 
 } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import type { Lead, LeadStatus, LeadPriority } from "../../utils/types";
@@ -112,6 +113,101 @@ export const leadsService = {
     }
   },
 
+  // Suscribirse a cambios en tiempo real
+  subscribeToChanges(callback: (leads: Lead[]) => void) {
+    const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
+    
+    return onSnapshot(q, (querySnapshot) => {
+      const leads = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        
+        // Determinar si es formato nuevo o antiguo
+        const isNewFormat = data.fullName && data.phone && data.idNumber;
+        
+        if (isNewFormat) {
+          // Formato nuevo (CrediExpress)
+          return {
+            id: doc.id,
+            fullName: data.fullName || '',
+            email: data.email || '',
+            phone: data.phone || '',
+            idNumber: data.idNumber || '',
+            maritalStatus: data.maritalStatus,
+            status: data.status || 'Nuevo',
+            prioridad: data.prioridad || 'Media',
+            fuente: data.fuente || 'CrediExpress',
+            fechaCreacion: data.fechaCreacion || new Date().toISOString().split('T')[0],
+            fechaUltimoContacto: data.fechaUltimoContacto,
+            vehicleAmount: data.vehicleAmount || data.presupuesto || 0,
+            downPaymentPct: data.downPaymentPct,
+            termMonths: data.termMonths,
+            creditScore: data.creditScore,
+            vehiculoInteres: data.vehiculoInteres,
+            observaciones: data.observaciones,
+            asignadoA: data.asignadoA,
+            proximaAccion: data.proximaAccion,
+            motivoPerdida: data.motivoPerdida,
+            fechaCierre: data.fechaCierre,
+            montoFinal: data.montoFinal,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            // Campos deprecated para compatibilidad
+            nombres: data.nombres || (data.fullName ? data.fullName.split(' ').slice(0, 2).join(' ') : ''),
+            apellidos: data.apellidos || (data.fullName ? data.fullName.split(' ').slice(2).join(' ') : ''),
+            telefono: data.telefono || data.phone,
+            cedula: data.cedula || data.idNumber,
+            presupuesto: data.presupuesto || data.vehicleAmount,
+            modelo: data.modelo || data.vehiculoInteres,
+            notas: data.notas || data.observaciones,
+            ultimaInteraccion: data.ultimaInteraccion || data.fechaUltimoContacto,
+          } as Lead;
+        } else {
+          // Formato antiguo (CRM legacy)
+          return {
+            id: doc.id,
+            // Mapear a formato nuevo
+            fullName: data.fullName || `${data.nombres || ''} ${data.apellidos || ''}`.trim(),
+            email: data.email || '',
+            phone: data.phone || data.telefono || '',
+            idNumber: data.idNumber || data.cedula || '',
+            maritalStatus: data.maritalStatus,
+            status: data.status || 'Nuevo',
+            prioridad: data.prioridad || 'Media',
+            fuente: data.fuente || 'Web',
+            fechaCreacion: data.fechaCreacion || new Date().toISOString().split('T')[0],
+            fechaUltimoContacto: data.fechaUltimoContacto || data.ultimaInteraccion,
+            vehicleAmount: data.vehicleAmount || data.presupuesto || 0,
+            downPaymentPct: data.downPaymentPct,
+            termMonths: data.termMonths,
+            creditScore: data.creditScore,
+            vehiculoInteres: data.vehiculoInteres || data.modelo,
+            observaciones: data.observaciones || data.notas,
+            asignadoA: data.asignadoA,
+            proximaAccion: data.proximaAccion,
+            motivoPerdida: data.motivoPerdida,
+            fechaCierre: data.fechaCierre,
+            montoFinal: data.montoFinal,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            // Campos deprecated para compatibilidad
+            nombres: data.nombres || '',
+            apellidos: data.apellidos || '',
+            telefono: data.telefono || '',
+            cedula: data.cedula || '',
+            presupuesto: data.presupuesto || 0,
+            modelo: data.modelo || '',
+            notas: data.notas || '',
+            ultimaInteraccion: data.ultimaInteraccion,
+          } as Lead;
+        }
+      });
+      
+      callback(leads);
+    }, (error) => {
+      console.error("Error en tiempo real de leads:", error);
+    });
+  },
+
   // Crear nuevo lead
   async create(lead: Omit<Lead, "id">): Promise<string> {
     try {
@@ -166,23 +262,24 @@ export const leadsService = {
     userName: string = 'Sistema'
   ): Promise<void> {
     try {
-      // Obtener estado anterior
-      const allLeads = await this.getAll();
-      const lead = allLeads.find(l => l.id === id);
-      const oldStatus = lead?.status || 'Nuevo';
-
-      // Actualizar estado
+      console.log(`🔄 Actualizando status de lead ${id} a ${newStatus}`);
+      
+      // Actualizar estado directamente sin obtener todos los leads
       const docRef = doc(db, COLLECTION_NAME, id);
       await updateDoc(docRef, {
         status: newStatus,
         updatedAt: Timestamp.now(),
-        fechaUltimoContacto: new Date().toISOString(),
+        fechaUltimoContacto: new Date().toISOString().split('T')[0], // Solo fecha YYYY-MM-DD
       });
 
-      // Crear actividad de cambio de estado
-      await createStatusChangeActivity(id, oldStatus as LeadStatus, newStatus, userName);
+      console.log(`✅ Lead ${id} actualizado a ${newStatus}`);
       
-      console.log(`✅ Estado actualizado: ${oldStatus} → ${newStatus}`);
+      // Crear actividad de cambio de estado (solo registra, no afecta el estado)
+      try {
+        await createStatusChangeActivity(id, 'Status Anterior' as LeadStatus, newStatus, userName);
+      } catch (activityError) {
+        console.warn('⚠️ Error creando actividad (no crítico):', activityError);
+      }
     } catch (error) {
       console.error("Error actualizando estado:", error);
       throw error;

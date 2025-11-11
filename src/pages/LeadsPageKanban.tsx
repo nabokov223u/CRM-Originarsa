@@ -22,25 +22,24 @@ export const LeadsPageKanban: React.FC = () => {
   const [noteTitle, setNoteTitle] = useState('');
   const [noteDescription, setNoteDescription] = useState('');
 
-  // Cargar leads
+  // Cargar leads con suscripción en tiempo real
   useEffect(() => {
-    loadLeads();
-  }, []);
-
-  const loadLeads = async () => {
-    try {
-      setLoading(true);
-      console.log('🔄 Cargando leads desde Firebase...');
-      // Usar servicio unificado para obtener tanto leads como aplicaciones de CrediExpress
-      const data = await unifiedLeadsService.getAllLeads();
-      console.log('✅ Leads cargados:', data.length, data);
+    setLoading(true);
+    console.log('🔄 Suscribiéndose a cambios en tiempo real...');
+    
+    // Suscribirse a cambios en tiempo real
+    const unsubscribe = unifiedLeadsService.subscribeToAllLeads((data) => {
+      console.log('✅ Leads actualizados en tiempo real:', data.length);
       setLeads(data);
-    } catch (error) {
-      console.error('❌ Error cargando leads:', error);
-    } finally {
       setLoading(false);
-    }
-  };
+    });
+
+    // Cleanup: cancelar suscripción al desmontar
+    return () => {
+      console.log('🔌 Desconectando suscripción en tiempo real');
+      unsubscribe();
+    };
+  }, []);
 
   // Cargar actividades del lead seleccionado
   useEffect(() => {
@@ -76,12 +75,7 @@ export const LeadsPageKanban: React.FC = () => {
         await leadsService.updateStatus(leadId, newStatus, 'Usuario Actual');
       }
       
-      // Actualizar la lista de leads localmente
-      setLeads(prevLeads =>
-        prevLeads.map(lead =>
-          lead.id === leadId ? { ...lead, status: newStatus } : lead
-        )
-      );
+      // ✅ Ya no necesitamos actualizar localmente - la suscripción en tiempo real lo hace automáticamente
 
       // Si es el lead seleccionado, recargar actividades
       if (selectedLead?.id === leadId) {

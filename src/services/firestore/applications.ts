@@ -26,6 +26,7 @@ export interface Application {
     vehicleAmount: number;
   };
   status: "approved" | "rejected" | "pending";
+  crmStatus?: string; // Estado del CRM independiente (Nuevo, Contactado, etc.)
   createdAt: any;
   updatedAt: any;
   // Campos adicionales que puede tener CrediExpress
@@ -62,6 +63,7 @@ export const applicationsService = {
             vehicleAmount: data.loan?.vehicleAmount || 0,
           },
           status: data.status || "pending",
+          crmStatus: data.crmStatus, // Estado del CRM
           createdAt: data.createdAt,
           updatedAt: data.updatedAt,
           score: data.score,
@@ -97,6 +99,7 @@ export const applicationsService = {
             vehicleAmount: data.loan?.vehicleAmount || 0,
           },
           status: data.status || "pending",
+          crmStatus: data.crmStatus, // Estado del CRM
           createdAt: data.createdAt,
           updatedAt: data.updatedAt,
           score: data.score,
@@ -135,6 +138,21 @@ export const applicationsService = {
       console.log(`✅ Application ${id} actualizada a status: ${status}`);
     } catch (error) {
       console.error("Error actualizando status de application:", error);
+      throw error;
+    }
+  },
+
+  // Actualizar estado del CRM (independiente del status de CrediExpress)
+  async updateCrmStatus(id: string, crmStatus: string): Promise<void> {
+    try {
+      const docRef = doc(db, COLLECTION_NAME, id);
+      await updateDoc(docRef, {
+        crmStatus: crmStatus,
+        updatedAt: new Date().toISOString(),
+      });
+      console.log(`✅ Application ${id} actualizada a CRM status: ${crmStatus}`);
+    } catch (error) {
+      console.error("Error actualizando CRM status de application:", error);
       throw error;
     }
   },
