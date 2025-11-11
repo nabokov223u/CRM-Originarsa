@@ -123,4 +123,19 @@ export const applicationsService = {
       throw error;
     }
   },
+
+  // Actualizar estado de una application
+  async updateStatus(id: string, status: "approved" | "rejected" | "pending"): Promise<void> {
+    try {
+      const docRef = doc(db, COLLECTION_NAME, id);
+      await updateDoc(docRef, {
+        status: status,
+        updatedAt: new Date().toISOString(),
+      });
+      console.log(`✅ Application ${id} actualizada a status: ${status}`);
+    } catch (error) {
+      console.error("Error actualizando status de application:", error);
+      throw error;
+    }
+  },
 };

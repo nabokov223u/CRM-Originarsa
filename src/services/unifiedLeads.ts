@@ -101,4 +101,20 @@ export const unifiedLeadsService = {
     }
     return leadsService.delete(id);
   },
+
+  // Actualizar estado de una application de CrediExpress
+  async updateApplicationStatus(id: string, newStatus: string): Promise<void> {
+    // Mapear estados del CRM a estados de CrediExpress
+    let crediExpressStatus: "approved" | "rejected" | "pending" = "pending";
+    
+    if (newStatus === "Ganado" || newStatus === "Calificado") {
+      crediExpressStatus = "approved";
+    } else if (newStatus === "Perdido") {
+      crediExpressStatus = "rejected";
+    } else {
+      crediExpressStatus = "pending";
+    }
+    
+    return applicationsService.updateStatus(id, crediExpressStatus);
+  },
 };

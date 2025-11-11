@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lead, LeadStatus, Actividad } from '../utils/types';
 import { KanbanBoard } from '../components/KanbanBoard';
+import { LeadsTableView } from '../components/LeadsTableView';
 import { ActivityTimeline } from '../components/ActivityTimeline';
 import { Modal } from '../components/Modal';
 import { Button } from '../components/Button';
@@ -63,9 +64,19 @@ export const LeadsPageKanban: React.FC = () => {
   // Manejar cambio de estado
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
     try {
-      await leadsService.updateStatus(leadId, newStatus, 'Usuario Actual');
+      // Verificar si el lead viene de CrediExpress
+      const isCrediExpress = leadId.startsWith('crediexpress_');
       
-      // Actualizar la lista de leads
+      if (isCrediExpress) {
+        // Para leads de CrediExpress, actualizar usando unifiedLeadsService
+        const realId = leadId.replace('crediexpress_', '');
+        await unifiedLeadsService.updateApplicationStatus(realId, newStatus);
+      } else {
+        // Para leads normales del CRM
+        await leadsService.updateStatus(leadId, newStatus, 'Usuario Actual');
+      }
+      
+      // Actualizar la lista de leads localmente
       setLeads(prevLeads =>
         prevLeads.map(lead =>
           lead.id === leadId ? { ...lead, status: newStatus } : lead
@@ -74,14 +85,16 @@ export const LeadsPageKanban: React.FC = () => {
 
       // Si es el lead seleccionado, recargar actividades
       if (selectedLead?.id === leadId) {
-        loadActivities(leadId);
+        if (!isCrediExpress) {
+          loadActivities(leadId);
+        }
         setSelectedLead(prev => prev ? { ...prev, status: newStatus } : null);
       }
 
       console.log('✅ Estado actualizado correctamente');
     } catch (error) {
       console.error('Error al cambiar estado:', error);
-      alert('Error al actualizar el estado del lead');
+      alert('Error al actualizar el estado del lead. ' + (error as Error).message);
     }
   };
 
@@ -184,10 +197,11 @@ export const LeadsPageKanban: React.FC = () => {
 
       {/* Vista Lista (placeholder por ahora) */}
       {viewMode === 'list' && (
-        <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-          <p>Vista de lista próximamente...</p>
-          <p className="text-sm mt-2">Por ahora usa la vista Kanban</p>
-        </div>
+        <LeadsTableView
+          leads={leads}
+          onLeadClick={handleLeadClick}
+          onStatusChange={handleStatusChange}
+        />
       )}
 
       {/* Modal de detalle del lead */}
