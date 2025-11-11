@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Lead, LeadStatus, Actividad } from '../utils/types';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { LeadsTableView } from '../components/LeadsTableView';
@@ -6,9 +6,11 @@ import { ActivityTimeline } from '../components/ActivityTimeline';
 import { Modal } from '../components/Modal';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { Header } from '../components/HeaderNew';
 import { unifiedLeadsService } from '../services/unifiedLeads';
 import { leadsService } from '../services/firestore/leads';
 import { getActivitiesByLead, createNoteActivity } from '../services/firestore/activities';
+import { LayoutGrid, List } from 'lucide-react';
 
 export const LeadsPageKanban: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -153,50 +155,81 @@ export const LeadsPageKanban: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pipeline de Ventas</h1>
-          <p className="text-gray-600 mt-1">
-            Gestiona tus leads desde CrediExpress hasta el cierre
-          </p>
-        </div>
+    <div className="flex flex-col h-full">
+      {/* Header Estilo Bitrix24 */}
+      <Header 
+        title="Leads"
+        onCreateNew={() => alert('Crear nuevo lead')}
+        createButtonText="Crear"
+      />
 
-        {/* Botones de vista */}
-        <div className="flex gap-2">
-          <Button
-            onClick={() => setViewMode('kanban')}
-            variant={viewMode === 'kanban' ? 'primary' : 'secondary'}
-          >
-            📊 Vista Kanban
-          </Button>
-          <Button
-            onClick={() => setViewMode('list')}
-            variant={viewMode === 'list' ? 'primary' : 'secondary'}
-          >
-            📋 Vista Lista
-          </Button>
+      {/* Tabs y Filtros - Estilo Bitrix24 */}
+      <div className="bg-white border-b border-gray-200 px-6 py-3">
+        <div className="flex items-center justify-between">
+          {/* Tabs */}
+          <div className="flex gap-6">
+            <button className="pb-3 border-b-2 border-blue-600 text-blue-600 font-medium text-sm">
+              General
+            </button>
+            <button className="pb-3 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm">
+              En progreso
+            </button>
+            <button className="pb-3 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm">
+              Ganados
+            </button>
+            <button className="pb-3 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm">
+              Perdidos
+            </button>
+          </div>
+
+          {/* Botones de vista */}
+          <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('kanban')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
+                viewMode === 'kanban'
+                  ? 'bg-white shadow-sm text-gray-900'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              Kanban
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-white shadow-sm text-gray-900'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <List className="w-4 h-4" />
+              Lista
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Vista Kanban */}
-      {viewMode === 'kanban' && (
-        <KanbanBoard
-          leads={leads}
-          onLeadClick={handleLeadClick}
-          onStatusChange={handleStatusChange}
-        />
-      )}
+      {/* Contenido */}
+      <div className="flex-1 overflow-auto bg-gray-50 p-6">
+        {/* Vista Kanban */}
+        {viewMode === 'kanban' && (
+          <KanbanBoard
+            leads={leads}
+            onLeadClick={handleLeadClick}
+            onStatusChange={handleStatusChange}
+          />
+        )}
 
-      {/* Vista Lista (placeholder por ahora) */}
-      {viewMode === 'list' && (
-        <LeadsTableView
-          leads={leads}
-          onLeadClick={handleLeadClick}
-          onStatusChange={handleStatusChange}
-        />
-      )}
+        {/* Vista Lista */}
+        {viewMode === 'list' && (
+          <LeadsTableView
+            leads={leads}
+            onLeadClick={handleLeadClick}
+            onStatusChange={handleStatusChange}
+          />
+        )}
+      </div>
 
       {/* Modal de detalle del lead */}
       {selectedLead && (
