@@ -1,0 +1,54 @@
+type User @table {
+  email: String!
+  displayName: String!
+  createdAt: Timestamp!
+  photoUrl: String
+  role: String
+}
+
+type Organization @table {
+  name: String!
+  createdAt: Timestamp!
+  website: String
+  industry: String
+  phoneNumber: String
+  address: String
+}
+
+type Contact @table {
+  firstName: String!
+  lastName: String!
+  createdAt: Timestamp!
+  organization: Organization
+  assignedTo: User
+  email: String
+  phoneNumber: String
+  jobTitle: String
+  linkedinProfile: String
+  source: String
+}
+
+type Interaction @table {
+  type: String!
+  timestamp: Timestamp!
+  createdAt: Timestamp!
+  loggedBy: User!
+  contact: Contact
+  organization: Organization
+  notes: String
+  duration: Int
+  subject: String
+  status: String
+}
+
+type Deal @table {
+  name: String!
+  stage: String!
+  expectedCloseDate: Date!
+  value: Float!
+  createdAt: Timestamp!
+  organization: Organization!
+  assignedTo: User!
+  description: String
+  probability: Float
+}

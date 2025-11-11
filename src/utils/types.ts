@@ -1,22 +1,42 @@
 export interface Lead {
-  id: number;
-  nombres: string;
-  apellidos: string;
-  telefono: string;
-  email?: string;
-  cedula: string;
-  modelo?: string;
+  id: string;
+  // Campos principales (compatibles con CrediExpress)
+  fullName: string;        // Nombre completo (reemplaza nombres + apellidos)
+  email: string;
+  phone: string;          // telefono -> phone
+  idNumber: string;       // cedula -> idNumber
+  maritalStatus?: string; // Nuevo campo de CrediExpress
+  
+  // Campos del CRM
   status: "Nuevo" | "Contactado" | "Negociación" | "Aprobado" | "Perdido";
-  fuente: "Web" | "Referido" | "Redes Sociales" | "Llamada" | "Otro";
+  fuente: "Web" | "Referido" | "Redes Sociales" | "Llamada" | "CrediExpress";
   fechaCreacion: string;
   ultimaInteraccion?: string;
-  presupuesto?: number;
+  
+  // Información del vehículo/préstamo
+  vehicleAmount?: number;  // presupuesto -> vehicleAmount (compatible con CrediExpress)
+  downPaymentPct?: number; // Porcentaje de cuota inicial
+  termMonths?: number;     // Plazo en meses
+  
+  // Campos adicionales
+  modelo?: string;
   notas?: string;
   asignadoA?: string;
+  
+  // Campos de Firebase
+  createdAt?: any;
+  updatedAt?: any;
+  
+  // CAMPOS DEPRECATED (mantener por compatibilidad temporal)
+  nombres?: string;
+  apellidos?: string;
+  telefono?: string;
+  cedula?: string;
+  presupuesto?: number;
 }
 
 export interface Cliente {
-  id: number;
+  id: string;
   nombres: string;
   apellidos: string;
   telefono: string;
@@ -30,13 +50,13 @@ export interface Cliente {
 }
 
 export interface Actividad {
-  id: number;
+  id: string;
   tipo: "Llamada" | "Reunión" | "Email" | "Nota" | "Tarea";
   titulo: string;
   descripcion: string;
   fecha: string;
-  leadId?: number;
-  clienteId?: number;
+  leadId?: string;
+  clienteId?: string;
   completada: boolean;
 }
 
@@ -48,7 +68,7 @@ export interface Estadistica {
 }
 
 export interface Vehiculo {
-  id: number;
+  id: string;
   marca: string;
   modelo: string;
   año: number;

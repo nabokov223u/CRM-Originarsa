@@ -1,0 +1,32 @@
+mutation CreateSeedData @transaction @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  # Seed data for User table
+  user_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      username: "demouser1",
+      email: "demouser1@example.com",
+      createdAt: "2024-01-01T00:00:00Z"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440001",
+      username: "demouser2",
+      email: "demouser2@example.com",
+      createdAt: "2024-01-02T00:00:00Z"
+    }
+  ])
+  # Seed data for Comment table, referencing User IDs
+  comment_insertMany(data: [
+    {
+      id: "660f9511-f3ab-52e5-b827-557766551111",
+      user: "550e8400-e29b-41d4-a716-446655440000",
+      content: "Example comment from demouser1",
+      createdAt: "2024-01-03T00:00:00Z"
+    },
+    {
+      id: "660f9511-f3ab-52e5-b827-557766551112",
+      user: "550e8400-e29b-41d4-a716-446655440001",
+      content: "Example comment from demouser2",
+      createdAt: "2024-01-04T00:00:00Z"
+    }
+  ])
+}

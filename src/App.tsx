@@ -7,13 +7,13 @@ import { LeadsPage } from './pages/LeadsPage';
 import { ClientesPage } from './pages/ClientesPage';
 import { Button } from './components/Button';
 import { Lead, Cliente, Actividad } from './utils/types';
-import { leadsService } from './services/firestore/leads';
+import { unifiedLeadsService } from './services/unifiedLeads';
 import { clientesService } from './services/firestore/clientes';
 
 // Datos de ejemplo para actividades (temporal)
 const actividadesDemoData: Actividad[] = [
   {
-    id: 1,
+    id: "1",
     tipo: 'Llamada',
     titulo: 'Seguimiento a cliente',
     descripcion: 'Llamar para agendar test drive',
@@ -21,7 +21,7 @@ const actividadesDemoData: Actividad[] = [
     completada: false,
   },
   {
-    id: 2,
+    id: "2", 
     tipo: 'Reunión',
     titulo: 'Presentación de modelos',
     descripcion: 'Mostrar opciones disponibles',
@@ -39,13 +39,9 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar leads desde Firebase al iniciar
+  // Cargar datos desde Firebase al iniciar
   useEffect(() => {
     loadLeads();
-  }, []);
-
-  // Cargar clientes desde Firebase al iniciar
-  useEffect(() => {
     loadClientes();
   }, []);
 
@@ -53,11 +49,15 @@ function App() {
     try {
       setLoading(true);
       setError(null);
-      const data = await leadsService.getAll();
+      console.log('🔄 Cargando leads desde Firebase...');
+      const data = await unifiedLeadsService.getAllLeads();
+      console.log('✅ Leads cargados:', data.length);
       setLeads(data);
     } catch (err) {
-      console.error("Error cargando leads:", err);
+      console.error("❌ Error cargando leads:", err);
       setError("Error al cargar los leads. Verifica tu conexión a Firebase.");
+      // En caso de error, usar datos vacíos para que la app no se rompa
+      setLeads([]);
     } finally {
       setLoading(false);
     }
@@ -65,31 +65,39 @@ function App() {
 
   const loadClientes = async () => {
     try {
+      console.log('🔄 Cargando clientes desde Firebase...');
       const data = await clientesService.getAll();
+      console.log('✅ Clientes cargados:', data.length);
       setClientes(data);
     } catch (err) {
-      console.error("Error cargando clientes:", err);
+      console.error("❌ Error cargando clientes:", err);
+      // En caso de error, usar datos vacíos
+      setClientes([]);
     }
   };
 
   // CRUD para leads con Firebase
   const handleAddLead = async (newLead: Omit<Lead, 'id'>) => {
     try {
-      await leadsService.create(newLead);
+      console.log('🔄 Creando nuevo lead...');
+      await unifiedLeadsService.create(newLead);
+      console.log('✅ Lead creado exitosamente');
       await loadLeads(); // Recargar lista
       setShowLeadModal(false);
     } catch (err) {
-      console.error("Error agregando lead:", err);
+      console.error("❌ Error agregando lead:", err);
       alert("Error al agregar el lead. Por favor, intenta de nuevo.");
     }
   };
 
   const handleUpdateLead = async (id: string, updatedData: Partial<Lead>) => {
     try {
-      await leadsService.update(id, updatedData);
+      console.log('🔄 Actualizando lead:', id);
+      await unifiedLeadsService.update(id, updatedData);
+      console.log('✅ Lead actualizado exitosamente');
       await loadLeads(); // Recargar lista
     } catch (err) {
-      console.error("Error actualizando lead:", err);
+      console.error("❌ Error actualizando lead:", err);
       alert("Error al actualizar el lead. Por favor, intenta de nuevo.");
     }
   };
@@ -99,10 +107,12 @@ function App() {
       return;
     }
     try {
-      await leadsService.delete(id);
+      console.log('🔄 Eliminando lead:', id);
+      await unifiedLeadsService.delete(id);
+      console.log('✅ Lead eliminado exitosamente');
       await loadLeads(); // Recargar lista
     } catch (err) {
-      console.error("Error eliminando lead:", err);
+      console.error("❌ Error eliminando lead:", err);
       alert("Error al eliminar el lead. Por favor, intenta de nuevo.");
     }
   };
@@ -130,9 +140,20 @@ function App() {
             <h3 className="text-lg font-semibold text-red-900">Error de Conexión</h3>
           </div>
           <p className="text-red-700 mb-4">{error}</p>
-          <Button onClick={loadLeads} variant="secondary">
-            🔄 Reintentar
-          </Button>
+          <div className="space-y-2">
+            <Button onClick={loadLeads} variant="secondary">
+              🔄 Reintentar
+            </Button>
+            <details className="text-xs text-red-600 mt-2">
+              <summary className="cursor-pointer">Ver detalles técnicos</summary>
+              <p className="mt-2">
+                • Verifica que Firebase esté configurado<br/>
+                • Revisa las variables de entorno (.env)<br/>
+                • Comprueba la conexión a internet<br/>
+                • Abre la consola del navegador (F12)
+              </p>
+            </details>
+          </div>
         </div>
       );
     }

@@ -1,0 +1,34 @@
+mutation CreateOrganization @auth(level: USER) {
+  organization_insert(data: {
+    name: "New Organization",
+    createdAt_expr: "request.time"
+  })
+}
+
+query ListOrganizations @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  organizations {
+    id
+    name
+    createdAt
+  }
+}
+
+mutation UpdateContact($id: UUID!, $firstName: String, $lastName: String) @auth(level: USER) {
+  contact_update(
+    id: $id,
+    data: {
+      firstName: $firstName,
+      lastName: $lastName
+    }
+  )
+}
+
+query GetUserInteractions @auth(level: USER) {
+  interactions(where: {loggedById: {eq_expr: "auth.uid"}}) {
+    id
+    subject
+    notes
+    timestamp
+    type
+  }
+}

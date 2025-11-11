@@ -1,0 +1,16 @@
+{
+  "functions": {
+    "source": "functions"
+  },
+  "emulators": {
+    "dataconnect": {
+      "dataDir": "dataconnect/.dataconnect/pgliteData"
+    },
+    "functions": {
+      "port": 5001
+    }
+  },
+  "dataconnect": {
+    "source": "dataconnect"
+  }
+}
