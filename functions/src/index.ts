@@ -2,15 +2,15 @@ import * as functions from 'firebase-functions';
 import twilio from 'twilio';
 import sgMail from '@sendgrid/mail';
 
-// Twilio configuration - usar credenciales directas para testing
-const accountSid = 'ACdae96b0d1f7bf95b79e0bac15f21ce45';
-const authToken = '16021a395b34324c9b37c7f738194e6e';
-const twilioPhone = '+14155238886';  // Número correcto del Sandbox WhatsApp
+// Twilio configuration - usar variables de entorno o configuración de Firebase
+const accountSid = process.env.TWILIO_ACCOUNT_SID || functions.config().twilio?.account_sid;
+const authToken = process.env.TWILIO_AUTH_TOKEN || functions.config().twilio?.auth_token;
+const twilioPhone = process.env.TWILIO_WHATSAPP_FROM || '+14155238886';
 const twilioClient = twilio(accountSid, authToken);
 
 // SendGrid configuration
-const sendGridApiKey = functions.config().sendgrid.api_key;
-const fromEmail = functions.config().sendgrid.from_email || 'notificaciones@originarsa.com';
+const sendGridApiKey = process.env.SENDGRID_API_KEY || functions.config().sendgrid?.api_key;
+const fromEmail = process.env.SENDGRID_FROM_EMAIL || functions.config().sendgrid?.from_email || 'notificaciones@originarsa.com';
 sgMail.setApiKey(sendGridApiKey);
 
 interface Application {
