@@ -51,30 +51,30 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-white p-4">
       <div className="w-full max-w-md">
         {/* Logo y título */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-white mb-2">CRM Originarsa</h1>
-          <p className="text-slate-400">Inicia sesión para continuar</p>
+          <img 
+            src="/Logos/Logo Negro Super.png" 
+            alt="Originarsa Logo" 
+            className="h-32 mx-auto mb-6"
+          />
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Bienvenido</h1>
+          <p className="text-gray-600">Inicia sesión en tu cuenta</p>
         </div>
 
         {/* Formulario de login */}
-        <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
+        <Card className="bg-white shadow-xl border border-gray-200">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-                <p className="text-red-400 text-sm">{error}</p>
+              <div className="p-4 rounded-xl bg-red-50 border border-red-200">
+                <p className="text-red-600 text-sm">{error}</p>
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email
               </label>
               <Input
@@ -84,12 +84,12 @@ export function LoginPage() {
                 placeholder="tu@email.com"
                 required
                 disabled={loading}
-                className="bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500"
+                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Contraseña
               </label>
               <Input
@@ -99,29 +99,36 @@ export function LoginPage() {
                 placeholder="••••••••"
                 required
                 disabled={loading}
-                className="bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500"
+                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
               />
             </div>
 
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 shadow-lg hover:shadow-xl transition-all"
             >
-              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                  Iniciando sesión...
+                </span>
+              ) : (
+                'Iniciar Sesión'
+              )}
             </Button>
           </form>
 
           {/* Footer */}
           <div className="mt-6 text-center">
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-gray-500">
               ¿Problemas para acceder? Contacta al administrador
             </p>
           </div>
         </Card>
 
         {/* Versión */}
-        <p className="text-center text-slate-600 text-xs mt-6">
+        <p className="text-center text-gray-400 text-xs mt-6">
           CRM Originarsa v0.9 - Sistema de Gestión de Leads
         </p>
       </div>
