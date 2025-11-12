@@ -25,19 +25,23 @@ var __importStar = (this && this.__importStar) || function (mod) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a, _b, _c, _d;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onNewApplication = void 0;
+exports.setAdminRole = exports.createUser = exports.onNewApplication = void 0;
 const functions = __importStar(require("firebase-functions"));
+const admin = __importStar(require("firebase-admin"));
 const twilio_1 = __importDefault(require("twilio"));
 const mail_1 = __importDefault(require("@sendgrid/mail"));
-// Twilio configuration - usar credenciales directas para testing
-const accountSid = 'ACdae96b0d1f7bf95b79e0bac15f21ce45';
-const authToken = '16021a395b34324c9b37c7f738194e6e';
-const twilioPhone = '+14155238886'; // Número correcto del Sandbox WhatsApp
+// Inicializar Firebase Admin
+admin.initializeApp();
+// Twilio configuration - usar variables de entorno o configuración de Firebase
+const accountSid = process.env.TWILIO_ACCOUNT_SID || ((_a = functions.config().twilio) === null || _a === void 0 ? void 0 : _a.account_sid);
+const authToken = process.env.TWILIO_AUTH_TOKEN || ((_b = functions.config().twilio) === null || _b === void 0 ? void 0 : _b.auth_token);
+const twilioPhone = process.env.TWILIO_WHATSAPP_FROM || '+14155238886';
 const twilioClient = (0, twilio_1.default)(accountSid, authToken);
 // SendGrid configuration
-const sendGridApiKey = functions.config().sendgrid.api_key;
-const fromEmail = functions.config().sendgrid.from_email || 'notificaciones@originarsa.com';
+const sendGridApiKey = process.env.SENDGRID_API_KEY || ((_c = functions.config().sendgrid) === null || _c === void 0 ? void 0 : _c.api_key);
+const fromEmail = process.env.SENDGRID_FROM_EMAIL || ((_d = functions.config().sendgrid) === null || _d === void 0 ? void 0 : _d.from_email) || 'notificaciones@originarsa.com';
 mail_1.default.setApiKey(sendGridApiKey);
 // 📱 Función para enviar WhatsApp
 const sendWhatsApp = async (to, message) => {
@@ -381,6 +385,77 @@ exports.onNewApplication = functions.firestore
     }
     catch (error) {
         console.error(`❌ Error procesando nueva aplicación:`, error);
+    }
+});
+// 🔐 Función para crear usuarios con roles (solo admins pueden llamar)
+exports.createUser = functions.https.onCall(async (data, context) => {
+    var _a;
+    // Verificar que el usuario esté autenticado
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Debes estar autenticado para crear usuarios');
+    }
+    // Verificar que el usuario que llama sea admin
+    const callerUid = context.auth.uid;
+    const callerUser = await admin.auth().getUser(callerUid);
+    const isAdmin = ((_a = callerUser.customClaims) === null || _a === void 0 ? void 0 : _a.admin) === true;
+    if (!isAdmin) {
+        throw new functions.https.HttpsError('permission-denied', 'Solo los administradores pueden crear usuarios');
+    }
+    // Validar datos requeridos
+    const { email, password, role, displayName } = data;
+    if (!email || !password || !role || !displayName) {
+        throw new functions.https.HttpsError('invalid-argument', 'Email, password, role y displayName son requeridos');
+    }
+    if (!['admin', 'vendedor'].includes(role)) {
+        throw new functions.https.HttpsError('invalid-argument', 'Role debe ser "admin" o "vendedor"');
+    }
+    try {
+        // Crear usuario en Firebase Auth
+        const userRecord = await admin.auth().createUser({
+            email: email,
+            password: password,
+            displayName: displayName,
+            emailVerified: false
+        });
+        // Asignar custom claims según el rol
+        await admin.auth().setCustomUserClaims(userRecord.uid, {
+            admin: role === 'admin',
+            vendedor: role === 'vendedor'
+        });
+        console.log(`✅ Usuario creado: ${email} (${role})`);
+        return {
+            success: true,
+            uid: userRecord.uid,
+            message: `Usuario ${email} creado exitosamente como ${role}`
+        };
+    }
+    catch (error) {
+        console.error('❌ Error creando usuario:', error);
+        // Mapear errores comunes
+        if (error.code === 'auth/email-already-exists') {
+            throw new functions.https.HttpsError('already-exists', 'Ya existe un usuario con este email');
+        }
+        throw new functions.https.HttpsError('internal', error.message);
+    }
+});
+// 🔐 Función para asignar rol de admin manualmente (ejecutar desde Firebase Console)
+exports.setAdminRole = functions.https.onCall(async (data, context) => {
+    const { email } = data;
+    if (!email) {
+        throw new functions.https.HttpsError('invalid-argument', 'Email es requerido');
+    }
+    try {
+        const user = await admin.auth().getUserByEmail(email);
+        await admin.auth().setCustomUserClaims(user.uid, { admin: true, vendedor: false });
+        console.log(`✅ Rol de admin asignado a: ${email}`);
+        return {
+            success: true,
+            message: `Rol de admin asignado a ${email}`
+        };
+    }
+    catch (error) {
+        console.error('❌ Error asignando rol:', error);
+        throw new functions.https.HttpsError('internal', error.message);
     }
 });
 //# sourceMappingURL=index.js.map

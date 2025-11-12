@@ -8,8 +8,11 @@ import {
   Calendar,
   Bell,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  LogOut,
+  UserCog
 } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 interface SidebarProps {
   activeTab: string;
@@ -17,7 +20,8 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
-  const [isCollapsed, setIsCollapsed] = useState(true); // Colapsado por defecto
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  const { user, isAdmin, logout } = useAuth();
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -26,6 +30,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
     { id: 'reportes', label: 'Analítica', icon: TrendingUp },
     { id: 'actividades', label: 'Calendario', icon: Calendar },
   ];
+
+  // Agregar "Usuarios" solo si es admin
+  if (isAdmin) {
+    menuItems.push({ id: 'usuarios', label: 'Usuarios', icon: UserCog } as any);
+  }
+
+  const handleLogout = async () => {
+    if (confirm('¿Seguro que deseas cerrar sesión?')) {
+      await logout();
+    }
+  };
+
+  // Obtener iniciales del usuario
+  const getUserInitials = () => {
+    if (user?.displayName) {
+      return user.displayName
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2);
+    }
+    return user?.email?.[0].toUpperCase() || 'U';
+  };
 
   return (
     <div className={`fixed left-0 top-0 z-50 bg-slate-800/80 backdrop-blur-lg border-r border-slate-700/50 h-screen transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'} flex flex-col shadow-2xl`}>
@@ -103,19 +131,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
               <Settings className="w-5 h-5" />
               <span>Configuración</span>
             </button>
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 text-sm"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Cerrar Sesión</span>
+            </button>
           </div>
         )}
 
         {/* User Profile */}
         <div className="p-3 border-t border-slate-700">
-          <div className={`flex items-center gap-3 p-2 rounded-lg hover:bg-slate-700 transition-colors ${isCollapsed ? 'justify-center' : ''}`}>
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-lg">
-              A
+          <div className={`flex items-center gap-3 p-2 rounded-lg hover:bg-slate-700 transition-colors cursor-pointer ${isCollapsed ? 'justify-center' : ''}`}>
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-lg">
+              {getUserInitials()}
             </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm text-white truncate">Admin</p>
-                <p className="text-xs text-slate-400 truncate">admin@originarsa.com</p>
+                <p className="font-medium text-sm text-white truncate">
+                  {user?.displayName || 'Usuario'}
+                </p>
+                <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+                {isAdmin && (
+                  <span className="inline-block mt-1 px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded">
+                    Admin
+                  </span>
+                )}
               </div>
             )}
           </div>

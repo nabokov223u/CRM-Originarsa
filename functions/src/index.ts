@@ -1,6 +1,10 @@
 import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
 import twilio from 'twilio';
 import sgMail from '@sendgrid/mail';
+
+// Inicializar Firebase Admin
+admin.initializeApp();
 
 // Twilio configuration - usar variables de entorno o configuración de Firebase
 const accountSid = process.env.TWILIO_ACCOUNT_SID || functions.config().twilio?.account_sid;
@@ -396,3 +400,103 @@ export const onNewApplication = functions.firestore
       console.error(`❌ Error procesando nueva aplicación:`, error);
     }
   });
+
+// 🔐 Función para crear usuarios con roles (solo admins pueden llamar)
+export const createUser = functions.https.onCall(async (data, context) => {
+  // Verificar que el usuario esté autenticado
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Debes estar autenticado para crear usuarios'
+    );
+  }
+
+  // Verificar que el usuario que llama sea admin
+  const callerUid = context.auth.uid;
+  const callerUser = await admin.auth().getUser(callerUid);
+  const isAdmin = callerUser.customClaims?.admin === true;
+
+  if (!isAdmin) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'Solo los administradores pueden crear usuarios'
+    );
+  }
+
+  // Validar datos requeridos
+  const { email, password, role, displayName } = data;
+  
+  if (!email || !password || !role || !displayName) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'Email, password, role y displayName son requeridos'
+    );
+  }
+
+  if (!['admin', 'vendedor'].includes(role)) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'Role debe ser "admin" o "vendedor"'
+    );
+  }
+
+  try {
+    // Crear usuario en Firebase Auth
+    const userRecord = await admin.auth().createUser({
+      email: email,
+      password: password,
+      displayName: displayName,
+      emailVerified: false
+    });
+
+    // Asignar custom claims según el rol
+    await admin.auth().setCustomUserClaims(userRecord.uid, {
+      admin: role === 'admin',
+      vendedor: role === 'vendedor'
+    });
+
+    console.log(`✅ Usuario creado: ${email} (${role})`);
+
+    return {
+      success: true,
+      uid: userRecord.uid,
+      message: `Usuario ${email} creado exitosamente como ${role}`
+    };
+  } catch (error: any) {
+    console.error('❌ Error creando usuario:', error);
+    
+    // Mapear errores comunes
+    if (error.code === 'auth/email-already-exists') {
+      throw new functions.https.HttpsError(
+        'already-exists',
+        'Ya existe un usuario con este email'
+      );
+    }
+    
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+// 🔐 Función para asignar rol de admin manualmente (ejecutar desde Firebase Console)
+export const setAdminRole = functions.https.onCall(async (data, context) => {
+  const { email } = data;
+
+  if (!email) {
+    throw new functions.https.HttpsError('invalid-argument', 'Email es requerido');
+  }
+
+  try {
+    const user = await admin.auth().getUserByEmail(email);
+    await admin.auth().setCustomUserClaims(user.uid, { admin: true, vendedor: false });
+    
+    console.log(`✅ Rol de admin asignado a: ${email}`);
+    
+    return {
+      success: true,
+      message: `Rol de admin asignado a ${email}`
+    };
+  } catch (error: any) {
+    console.error('❌ Error asignando rol:', error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
