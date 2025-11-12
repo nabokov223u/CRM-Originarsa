@@ -1,9 +1,9 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { Card } from '../components/Card';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { Dashboard } from './DashboardNew';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -32,7 +32,6 @@ export function LoginPage() {
       console.log('🔥 Llamando a login()...');
       await login(email, password);
       console.log('✅ Login exitoso!');
-      // El redirect se maneja en el useEffect cuando cambie 'user'
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
       console.error('❌ Error en login:', err);
@@ -51,86 +50,137 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4">
-      <div className="w-full max-w-md">
-        {/* Logo y título */}
-        <div className="text-center mb-8">
-          <img 
-            src="/Logos/Logo Negro Super.png" 
-            alt="Originarsa Logo" 
-            className="h-32 mx-auto mb-6"
-          />
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Bienvenido</h1>
-          <p className="text-gray-600">Inicia sesión en tu cuenta</p>
-        </div>
+    <div className="relative min-h-screen w-full overflow-hidden">
+      {/* Dashboard difuminado de fondo */}
+      <div className="absolute inset-0 blur-md scale-105 brightness-50">
+        <Dashboard leads={[]} />
+      </div>
 
-        {/* Formulario de login */}
-        <Card className="bg-white shadow-xl border border-gray-200">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="p-4 rounded-xl bg-red-50 border border-red-200">
-                <p className="text-red-600 text-sm">{error}</p>
-              </div>
-            )}
+      {/* Overlay oscuro */}
+      <div className="absolute inset-0 bg-black/40"></div>
 
+      {/* Contenedor del login */}
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex">
+          
+          {/* Panel Izquierdo - Branding */}
+          <div className="hidden md:flex md:w-2/5 bg-[#1a0f50] p-12 flex-col justify-between">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <Input
-                type="email"
-                value={email}
-                onChange={setEmail}
-                placeholder="tu@email.com"
-                required
-                disabled={loading}
-                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+              {/* Logo */}
+              <img 
+                src="/Logos/Logo Blanco.png" 
+                alt="Originarsa" 
+                className="h-12 mb-6"
               />
+              
+              {/* Línea decorativa */}
+              <div className="w-16 h-1 bg-[#0763fd] mb-8"></div>
+              
+              {/* Texto de bienvenida */}
+              <h1 className="text-4xl font-bold text-white mb-4 leading-tight">
+                Bienvenido de vuelta
+              </h1>
+              <p className="text-gray-300 text-lg">
+                Gestiona tus leads y crece tu negocio con nuestra plataforma integral de CRM.
+              </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Contraseña
-              </label>
-              <Input
-                type="password"
-                value={password}
-                onChange={setPassword}
-                placeholder="••••••••"
-                required
-                disabled={loading}
-                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
-              />
+            {/* Footer del panel */}
+            <div className="text-gray-400 text-sm">
+              <p>© 2025 Originarsa</p>
+              <p className="mt-1">Sistema de Gestión de Clientes</p>
             </div>
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 shadow-lg hover:shadow-xl transition-all"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                  Iniciando sesión...
-                </span>
-              ) : (
-                'Iniciar Sesión'
-              )}
-            </Button>
-          </form>
-
-          {/* Footer */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">
-              ¿Problemas para acceder? Contacta al administrador
-            </p>
           </div>
-        </Card>
 
-        {/* Versión */}
-        <p className="text-center text-gray-400 text-xs mt-6">
-          CRM Originarsa v0.9 - Sistema de Gestión de Leads
-        </p>
+          {/* Panel Derecho - Formulario */}
+          <div className="w-full md:w-3/5 p-12 flex flex-col justify-center">
+            {/* Header Mobile - Logo visible solo en móvil */}
+            <div className="md:hidden mb-8 text-center">
+              <img 
+                src="/Logos/Logo Negro.png" 
+                alt="Originarsa" 
+                className="h-12 mx-auto mb-4"
+              />
+              <h2 className="text-2xl font-bold text-gray-900">Iniciar Sesión</h2>
+            </div>
+
+            {/* Título Desktop */}
+            <div className="hidden md:block mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Iniciar sesión</h2>
+              <p className="text-gray-600">Ingresa a tu cuenta para continuar</p>
+            </div>
+
+            {/* Formulario */}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <div className="p-4 rounded-lg bg-red-50 border border-red-200">
+                  <p className="text-red-600 text-sm flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                    {error}
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Correo electrónico
+                </label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={setEmail}
+                  placeholder="tu@email.com"
+                  required
+                  disabled={loading}
+                  className=""
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Contraseña
+                </label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={setPassword}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                  disabled={loading}
+                  className=""
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#0763fd] hover:bg-[#0552d6] text-white font-semibold py-3.5 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 text-base"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    Iniciando sesión...
+                  </span>
+                ) : (
+                  'Iniciar Sesión'
+                )}
+              </Button>
+            </form>
+
+            {/* Footer */}
+            <div className="mt-8 text-center">
+              <p className="text-sm text-gray-500">
+                ¿Problemas para acceder?{' '}
+                <button className="text-[#0763fd] hover:underline font-medium">
+                  Contacta soporte
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
