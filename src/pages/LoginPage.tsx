@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
-import { Dashboard } from './DashboardNew';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -51,13 +50,18 @@ export function LoginPage() {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      {/* Dashboard difuminado de fondo */}
-      <div className="absolute inset-0 blur-md scale-105 brightness-50">
-        <Dashboard leads={[]} />
-      </div>
+      {/* Screenshot del dashboard difuminado de fondo */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center"
+        style={{
+          backgroundImage: 'url(/dashboard_screen.png)',
+          filter: 'blur(8px) brightness(0.5)',
+          transform: 'scale(1.1)'
+        }}
+      ></div>
 
-      {/* Overlay oscuro */}
-      <div className="absolute inset-0 bg-black/40"></div>
+      {/* Overlay oscuro adicional */}
+      <div className="absolute inset-0 bg-black/30"></div>
 
       {/* Contenedor del login */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
@@ -81,7 +85,7 @@ export function LoginPage() {
                 Bienvenido de vuelta
               </h1>
               <p className="text-gray-300 text-lg">
-                Gestiona tus leads y crece tu negocio con nuestra plataforma integral de CRM.
+                Plataforma para gestión de leads comerciales B2C
               </p>
             </div>
 
