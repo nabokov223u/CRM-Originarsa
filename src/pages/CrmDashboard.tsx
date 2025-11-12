@@ -13,7 +13,7 @@ export default function CrmDashboard() {
   const grouped = {
     Nuevo: leads.filter(l => l.status === "Nuevo"),
     Contactado: leads.filter(l => l.status === "Contactado"),
-    Aprobado: leads.filter(l => l.status === "Aprobado"),
+    Calificado: leads.filter(l => l.status === "Calificado"),
   };
 
   return (

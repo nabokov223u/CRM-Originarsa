@@ -1,8 +1,7 @@
 import { leadsService } from '../services/firestore/leads';
-import type { Lead } from '../utils/types';
 
 // Datos de ejemplo para probar Firebase
-const leadsDeEjemplo: Omit<Lead, 'id'>[] = [
+const leadsDeEjemplo: any[] = [
   {
     nombres: 'Juan Carlos',
     apellidos: 'Pérez González',
@@ -39,7 +38,7 @@ const leadsDeEjemplo: Omit<Lead, 'id'>[] = [
     email: 'carlos.martinez@email.com',
     cedula: '11223344',
     modelo: 'Chevrolet Onix',
-    status: 'Negociación',
+    status: 'Calificado',
     fuente: 'Redes Sociales',
     fechaCreacion: '2025-11-08',
     ultimaInteraccion: '2025-11-10',

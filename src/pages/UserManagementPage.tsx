@@ -3,8 +3,6 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { Card } from '../components/Card';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
-import { Layout } from '../components/Layout';
-import { useAuth } from '../hooks/useAuth';
 import app from '../lib/firebase';
 
 interface NewUser {
@@ -15,7 +13,6 @@ interface NewUser {
 }
 
 export function UserManagementPage() {
-  const { user } = useAuth();
   const [newUser, setNewUser] = useState<NewUser>({
     email: '',
     password: '',
@@ -59,9 +56,8 @@ export function UserManagementPage() {
   };
 
   return (
-    <Layout>
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
+    <div className="max-w-4xl mx-auto">
+      <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Gestión de Usuarios</h1>
           <p className="text-slate-400">Crea y administra cuentas de acceso al CRM</p>
         </div>
@@ -89,7 +85,7 @@ export function UserManagementPage() {
                 <Input
                   type="text"
                   value={newUser.displayName}
-                  onChange={(e) => setNewUser({ ...newUser, displayName: e.target.value })}
+                  onChange={(value) => setNewUser({ ...newUser, displayName: value })}
                   placeholder="Juan Pérez"
                   required
                   disabled={loading}
@@ -104,7 +100,7 @@ export function UserManagementPage() {
                 <Input
                   type="email"
                   value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  onChange={(value) => setNewUser({ ...newUser, email: value })}
                   placeholder="usuario@originarsa.com"
                   required
                   disabled={loading}
@@ -119,7 +115,7 @@ export function UserManagementPage() {
                 <Input
                   type="password"
                   value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  onChange={(value) => setNewUser({ ...newUser, password: value })}
                   placeholder="Mínimo 6 caracteres"
                   required
                   minLength={6}
@@ -193,6 +189,5 @@ export function UserManagementPage() {
           </div>
         </Card>
       </div>
-    </Layout>
   );
 }
