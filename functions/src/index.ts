@@ -500,3 +500,9 @@ export const setAdminRole = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('internal', error.message);
   }
 });
+
+// Importar y exportar funciones de WhatsApp
+import * as whatsapp from './whatsapp';
+export const getWhatsAppTemplates = whatsapp.getWhatsAppTemplates;
+// export const sendWhatsAppTemplate = whatsapp.sendWhatsAppTemplate;
+export const whatsappWebhook = whatsapp.whatsappWebhook;

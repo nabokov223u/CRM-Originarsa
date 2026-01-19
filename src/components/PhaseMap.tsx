@@ -1,6 +1,6 @@
 // src/components/PhaseMap.tsx
 import React from 'react';
-import { Target, Users, ShieldCheck, RefreshCw, AlertTriangle, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 interface PhaseMapProps {
   phaseId: string;
@@ -56,7 +56,7 @@ export const PhaseMap: React.FC<PhaseMapProps> = ({ phaseId }) => {
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <span className="text-sm font-medium">Perfil C (Mora > 5 días)</span>
+                <span className="text-sm font-medium">Perfil C (Mora &gt; 5 días)</span>
               </div>
             </div>
             <Arrow label="Anual" />
@@ -128,7 +128,7 @@ const Node = ({ title, subtitle, type = 'process', highlight = false }: any) => 
   );
 };
 
-const Arrow = ({ label, direction = 'right', isDotted = false, color = 'gray' }: any) => (
+const Arrow = ({ label, isDotted = false, color = 'gray' }: any) => (
   <div className="flex flex-col items-center px-2">
     {label && <span className="text-[10px] text-gray-400 mb-1 font-medium bg-white px-1">{label}</span>}
     <div className={`flex items-center text-gray-300 ${color === 'red' ? 'text-red-300' : ''}`}>
