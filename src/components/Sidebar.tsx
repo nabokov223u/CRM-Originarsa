@@ -10,7 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  UserCog
+  UserCog,
+  Megaphone
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -27,6 +28,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'leads', label: 'Leads', icon: Target, badge: 'Nuevo' },
     { id: 'clientes', label: 'Clientes', icon: Users },
+    { id: 'marketing', label: 'Marketing', icon: Megaphone },
     { id: 'reportes', label: 'Analítica', icon: TrendingUp },
     { id: 'actividades', label: 'Calendario', icon: Calendar },
   ];
@@ -56,36 +58,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   };
 
   return (
-    <div className={`fixed left-0 top-0 z-50 bg-slate-800/80 backdrop-blur-lg border-r border-slate-700/50 h-screen transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'} flex flex-col shadow-2xl`}>
+    <div className={`fixed left-0 top-0 z-50 bg-primary/95 backdrop-blur-lg border-r border-white/10 h-screen transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'} flex flex-col shadow-2xl`}>
       {/* Overlay de gradiente sutil para profundidad */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-700/10 via-transparent to-slate-900/10 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/20 pointer-events-none"></div>
       
       {/* Contenido con z-index superior */}
       <div className="relative z-10 flex flex-col h-full">
         {/* Header */}
-        <div className="h-16 px-4 border-b border-slate-700 flex items-center justify-between">
+        <div className="h-16 px-4 border-b border-white/10 flex items-center justify-between">
           {!isCollapsed ? (
             <div className="flex items-center gap-3">
               <img 
-                src="/logo_graphic.png" 
+                src="/Logos/Logo Blanco.png" 
                 alt="Originarsa" 
                 className="w-8 h-8 object-contain"
               />
               <div>
                 <h1 className="text-base font-bold text-white">CRM</h1>
-                <p className="text-xs text-slate-400">Originarsa</p>
+                <p className="text-xs text-secondary-hover/90">Originarsa</p>
               </div>
             </div>
           ) : (
             <img 
-              src="/logo_graphic.png" 
+              src="/Logos/Icono.png" 
               alt="Originarsa" 
               className="w-8 h-8 object-contain mx-auto"
             />
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1.5 hover:bg-slate-700 rounded-md transition-colors text-slate-300 hover:text-white"
+            className="p-1.5 hover:bg-white/10 rounded-md transition-colors text-slate-300 hover:text-white"
           >
             {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>

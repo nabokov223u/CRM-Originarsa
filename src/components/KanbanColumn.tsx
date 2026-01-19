@@ -60,6 +60,18 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
 
   const getColumnStyle = (color: string) => {
     const styles: Record<string, { header: string; badge: string; border: string; hover: string }> = {
+      primary: {
+        header: 'bg-primary-light border-primary/20',
+        badge: 'bg-primary/10 text-primary',
+        border: 'border-primary bg-primary-light',
+        hover: 'hover:border-primary/50'
+      },
+      secondary: {
+        header: 'bg-secondary-light border-secondary/20',
+        badge: 'bg-secondary/10 text-secondary',
+        border: 'border-secondary bg-secondary-light',
+        hover: 'hover:border-secondary/50'
+      },
       blue: {
         header: 'bg-blue-50 border-blue-200',
         badge: 'bg-blue-200 text-blue-900',

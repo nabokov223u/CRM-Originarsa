@@ -68,7 +68,7 @@ export function LoginPage() {
         <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex">
           
           {/* Panel Izquierdo - Branding */}
-          <div className="hidden md:flex md:w-2/5 bg-[#1a0f50] p-12 flex-col justify-between">
+          <div className="hidden md:flex md:w-2/5 bg-primary p-12 flex-col justify-between">
             <div>
               {/* Logo */}
               <img 
@@ -78,7 +78,7 @@ export function LoginPage() {
               />
               
               {/* Línea decorativa */}
-              <div className="w-16 h-1 bg-[#0763fd] mb-8"></div>
+              <div className="w-16 h-1 bg-secondary mb-8"></div>
               
               {/* Texto de bienvenida */}
               <h1 className="text-4xl font-bold text-white mb-4 leading-tight">

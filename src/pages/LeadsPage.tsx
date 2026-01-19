@@ -301,7 +301,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
-                        lead.status === 'Nuevo' ? 'bg-blue-50 text-blue-700' :
+                        lead.status === 'Nuevo' ? 'bg-primary/10 text-primary' :
                         lead.status === 'Contactado' ? 'bg-yellow-50 text-yellow-700' :
                         lead.status === 'Negociación' ? 'bg-orange-50 text-orange-700' :
                         lead.status === 'Ganado' ? 'bg-green-50 text-green-700' :

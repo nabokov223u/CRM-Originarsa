@@ -27,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
           <input
             type="text"
             placeholder="Buscar..."
-            className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
 
@@ -35,7 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
         {onCreateNew && (
           <button
             onClick={onCreateNew}
-            className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary-hover text-white rounded-lg font-medium transition-colors shadow-sm"
           >
             <Plus className="w-5 h-5" />
             <span>{createButtonText}</span>

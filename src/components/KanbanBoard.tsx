@@ -14,11 +14,11 @@ const KANBAN_COLUMNS: Array<{
   title: string;
   color: string;
 }> = [
-  { status: 'Nuevo', title: '🆕 Nuevos', color: 'blue' },
+  { status: 'Nuevo', title: '🆕 Nuevos', color: 'primary' },
   { status: 'Contactado', title: '📞 Contactados', color: 'yellow' },
   { status: 'Calificado', title: '🔥 Calificados', color: 'orange' },
   { status: 'Negociación', title: '💬 Negociación', color: 'purple' },
-  { status: 'Documentación', title: '📝 Documentación', color: 'indigo' },
+  { status: 'Documentación', title: '📝 Documentación', color: 'secondary' },
   { status: 'Ganado', title: '✅ Ganados', color: 'green' },
 ];
 
@@ -89,12 +89,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-sm text-gray-600">Ganados</div>
-          <div className="text-2xl font-bold text-blue-600">{stats.wonLeads}</div>
+          <div className="text-2xl font-bold text-emerald-600">{stats.wonLeads}</div>
         </div>
         
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-sm text-gray-600">Tasa Conversión</div>
-          <div className="text-2xl font-bold text-purple-600">{stats.conversionRate.toFixed(1)}%</div>
+          <div className="text-2xl font-bold text-primary">{stats.conversionRate.toFixed(1)}%</div>
         </div>
       </div>
 

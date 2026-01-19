@@ -34,7 +34,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
   const getActivityColor = (tipo: Actividad['tipo']) => {
     switch (tipo) {
       case 'Llamada':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
+        return 'bg-primary/10 text-primary border-primary/20';
       case 'Reunión':
         return 'bg-purple-100 text-purple-800 border-purple-300';
       case 'Email':
@@ -44,7 +44,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
       case 'Nota':
         return 'bg-yellow-100 text-yellow-800 border-yellow-300';
       case 'Cambio de Estado':
-        return 'bg-indigo-100 text-indigo-800 border-indigo-300';
+        return 'bg-secondary/10 text-secondary border-secondary/20';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-300';
     }
@@ -159,7 +159,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
                         {activity.metadata.estadoAnterior}
                       </span>
                       <span>→</span>
-                      <span className="px-2 py-1 bg-blue-100 rounded text-blue-700 font-medium">
+                      <span className="px-2 py-1 bg-primary/10 rounded text-primary font-medium">
                         {activity.metadata.estadoNuevo}
                       </span>
                     </div>

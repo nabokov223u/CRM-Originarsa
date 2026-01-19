@@ -102,12 +102,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Nuevo': return 'text-blue-600';
+      case 'Nuevo': return 'text-primary';
       case 'Contactado': return 'text-yellow-600';
       case 'Calificado': return 'text-orange-600';
       case 'Negociación': return 'text-purple-600';
-      case 'Documentación': return 'text-indigo-600';
-      case 'Ganado': return 'text-green-600';
+      case 'Documentación': return 'text-secondary';
+      case 'Ganado': return 'text-emerald-600';
       case 'Perdido': return 'text-red-600';
       default: return 'text-gray-600';
     }
@@ -126,7 +126,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-gray-600">Cargando dashboard...</p>
         </div>
       </div>
@@ -187,7 +187,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Ganados</p>
-              <p className="text-2xl font-bold text-blue-600 mt-1">
+              <p className="text-2xl font-bold text-emerald-600 mt-1">
                 {formatCurrency(valorGanados)}
               </p>
             </div>
@@ -228,11 +228,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Pipeline de Ventas</h2>
           <div className="space-y-3">
             {[
-              { status: 'Nuevo', count: leadsPorEstado.nuevo, color: 'bg-blue-500', total: leads.length },
-              { status: 'Contactado', count: leadsPorEstado.contactado, color: 'bg-yellow-500', total: leads.length },
-              { status: 'Calificado', count: leadsPorEstado.calificado, color: 'bg-orange-500', total: leads.length },
-              { status: 'Negociación', count: leadsPorEstado.negociacion, color: 'bg-purple-500', total: leads.length },
-              { status: 'Documentación', count: leadsPorEstado.documentacion, color: 'bg-indigo-500', total: leads.length },
+              { status: 'Nuevo', count: leadsPorEstado.nuevo, color: 'bg-primary', total: leads.length },
+              { status: 'Contactado', count: leadsPorEstado.contactado, color: 'bg-orange-500', total: leads.length },
+              { status: 'Calificado', count: leadsPorEstado.calificado, color: 'bg-lime-500', total: leads.length },
+              { status: 'Negociación', count: leadsPorEstado.negociacion, color: 'bg-amber-500', total: leads.length },
+              { status: 'Documentación', count: leadsPorEstado.documentacion, color: 'bg-secondary', total: leads.length },
               { status: 'Ganado', count: leadsPorEstado.ganado, color: 'bg-green-500', total: leads.length },
               { status: 'Perdido', count: leadsPorEstado.perdido, color: 'bg-red-500', total: leads.length },
             ].map((item) => {

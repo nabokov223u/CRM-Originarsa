@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+@theme {
+  --color-primary: #0d234a;
+  --color-primary-hover: #0a1b3b;
+  --color-primary-light: #f0f4f8; /* Light background variant */
+  --color-secondary: #08BD8F;
+  --color-secondary-hover: #069e78;
+  --color-secondary-light: #e6fcf8; /* Light background variant */
+}
+
 * {
   box-sizing: border-box;
 }
