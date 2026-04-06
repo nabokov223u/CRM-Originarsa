@@ -1,4 +1,4 @@
-import { 
+﻿import { 
   collection, 
   addDoc, 
   updateDoc, 
@@ -39,7 +39,7 @@ export const leadsService = {
             phone: data.phone || '',
             idNumber: data.idNumber || '',
             maritalStatus: data.maritalStatus,
-            status: data.status || 'Nuevo',
+            status: data.status || 'Por Facturar',
             prioridad: data.prioridad || 'Media',
             fuente: data.fuente || 'CrediExpress',
             fechaCreacion: data.fechaCreacion || new Date().toISOString().split('T')[0],
@@ -51,6 +51,8 @@ export const leadsService = {
             vehiculoInteres: data.vehiculoInteres,
             observaciones: data.observaciones,
             asignadoA: data.asignadoA,
+            origen: data.origen || 'CrediExpress',
+            asesor: data.asesor || 'Telemarketing',
             proximaAccion: data.proximaAccion,
             motivoPerdida: data.motivoPerdida,
             fechaCierre: data.fechaCierre,
@@ -77,7 +79,7 @@ export const leadsService = {
             phone: data.phone || data.telefono || '',
             idNumber: data.idNumber || data.cedula || '',
             maritalStatus: data.maritalStatus,
-            status: data.status || 'Nuevo',
+            status: data.status || 'Por Facturar',
             prioridad: data.prioridad || 'Media',
             fuente: data.fuente || 'Web',
             fechaCreacion: data.fechaCreacion || new Date().toISOString().split('T')[0],
@@ -89,6 +91,8 @@ export const leadsService = {
             vehiculoInteres: data.vehiculoInteres || data.modelo,
             observaciones: data.observaciones || data.notas,
             asignadoA: data.asignadoA,
+            origen: data.origen || '',
+            asesor: data.asesor || '',
             proximaAccion: data.proximaAccion,
             motivoPerdida: data.motivoPerdida,
             fechaCierre: data.fechaCierre,
@@ -133,7 +137,7 @@ export const leadsService = {
             phone: data.phone || '',
             idNumber: data.idNumber || '',
             maritalStatus: data.maritalStatus,
-            status: data.status || 'Nuevo',
+            status: data.status || 'Por Facturar',
             prioridad: data.prioridad || 'Media',
             fuente: data.fuente || 'CrediExpress',
             fechaCreacion: data.fechaCreacion || new Date().toISOString().split('T')[0],
@@ -145,6 +149,8 @@ export const leadsService = {
             vehiculoInteres: data.vehiculoInteres,
             observaciones: data.observaciones,
             asignadoA: data.asignadoA,
+            origen: data.origen || 'CrediExpress',
+            asesor: data.asesor || 'Telemarketing',
             proximaAccion: data.proximaAccion,
             motivoPerdida: data.motivoPerdida,
             fechaCierre: data.fechaCierre,
@@ -171,7 +177,7 @@ export const leadsService = {
             phone: data.phone || data.telefono || '',
             idNumber: data.idNumber || data.cedula || '',
             maritalStatus: data.maritalStatus,
-            status: data.status || 'Nuevo',
+            status: data.status || 'Por Facturar',
             prioridad: data.prioridad || 'Media',
             fuente: data.fuente || 'Web',
             fechaCreacion: data.fechaCreacion || new Date().toISOString().split('T')[0],
@@ -183,6 +189,8 @@ export const leadsService = {
             vehiculoInteres: data.vehiculoInteres || data.modelo,
             observaciones: data.observaciones || data.notas,
             asignadoA: data.asignadoA,
+            origen: data.origen || '',
+            asesor: data.asesor || '',
             proximaAccion: data.proximaAccion,
             motivoPerdida: data.motivoPerdida,
             fechaCierre: data.fechaCierre,
@@ -216,7 +224,7 @@ export const leadsService = {
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
         fechaCreacion: new Date().toISOString().split('T')[0],
-        status: lead.status || "Nuevo",
+        status: lead.status || "Por Facturar",
         prioridad: lead.prioridad || "Media",
         fuente: lead.fuente || "CrediExpress",
       });
@@ -253,7 +261,7 @@ export const leadsService = {
     }
   },
 
-  // ===== NUEVAS FUNCIONES PARA GESTIÓN DEL PIPELINE =====
+  // ===== NUEVAS FUNCIONES PARA GESTIÃ“N DEL PIPELINE =====
 
   // Cambiar estado del lead
   async updateStatus(
@@ -262,7 +270,7 @@ export const leadsService = {
     userName: string = 'Sistema'
   ): Promise<void> {
     try {
-      console.log(`🔄 Actualizando status de lead ${id} a ${newStatus}`);
+      console.log(`ðŸ”„ Actualizando status de lead ${id} a ${newStatus}`);
       
       // Actualizar estado directamente sin obtener todos los leads
       const docRef = doc(db, COLLECTION_NAME, id);
@@ -272,13 +280,13 @@ export const leadsService = {
         fechaUltimoContacto: new Date().toISOString().split('T')[0], // Solo fecha YYYY-MM-DD
       });
 
-      console.log(`✅ Lead ${id} actualizado a ${newStatus}`);
+      console.log(`âœ… Lead ${id} actualizado a ${newStatus}`);
       
       // Crear actividad de cambio de estado (solo registra, no afecta el estado)
       try {
         await createStatusChangeActivity(id, 'Status Anterior' as LeadStatus, newStatus, userName);
       } catch (activityError) {
-        console.warn('⚠️ Error creando actividad (no crítico):', activityError);
+        console.warn('âš ï¸ Error creando actividad (no crÃ­tico):', activityError);
       }
     } catch (error) {
       console.error("Error actualizando estado:", error);
@@ -294,7 +302,7 @@ export const leadsService = {
         asignadoA: userName,
         updatedAt: Timestamp.now(),
       });
-      console.log(`✅ Lead asignado a ${userName}`);
+      console.log(`âœ… Lead asignado a ${userName}`);
     } catch (error) {
       console.error("Error asignando lead:", error);
       throw error;
@@ -309,7 +317,7 @@ export const leadsService = {
         prioridad: priority,
         updatedAt: Timestamp.now(),
       });
-      console.log(`✅ Prioridad actualizada a ${priority}`);
+      console.log(`âœ… Prioridad actualizada a ${priority}`);
     } catch (error) {
       console.error("Error actualizando prioridad:", error);
       throw error;
@@ -325,7 +333,7 @@ export const leadsService = {
         motivoPerdida: reason,
         updatedAt: Timestamp.now(),
       });
-      console.log(`✅ Lead marcado como perdido: ${reason}`);
+      console.log(`âœ… Lead marcado como perdido: ${reason}`);
     } catch (error) {
       console.error("Error marcando como perdido:", error);
       throw error;
@@ -342,7 +350,7 @@ export const leadsService = {
         montoFinal: finalAmount,
         updatedAt: Timestamp.now(),
       });
-      console.log(`✅ Lead marcado como ganado`);
+      console.log(`âœ… Lead marcado como ganado`);
     } catch (error) {
       console.error("Error marcando como ganado:", error);
       throw error;
@@ -397,7 +405,7 @@ export const leadsService = {
         observaciones: notes,
         updatedAt: Timestamp.now(),
       });
-      console.log(`✅ Notas actualizadas`);
+      console.log(`âœ… Notas actualizadas`);
     } catch (error) {
       console.error("Error actualizando notas:", error);
       throw error;

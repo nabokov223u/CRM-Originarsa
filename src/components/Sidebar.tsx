@@ -3,15 +3,10 @@ import {
   LayoutDashboard, 
   Users, 
   Target, 
-  Settings,
-  TrendingUp,
-  Calendar,
-  Bell,
   ChevronLeft,
   ChevronRight,
   LogOut,
-  UserCog,
-  Megaphone
+  UserCog
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -26,11 +21,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'leads', label: 'Leads', icon: Target, badge: 'Nuevo' },
+    { id: 'leads', label: 'Leads', icon: Target },
     { id: 'clientes', label: 'Clientes', icon: Users },
-    { id: 'marketing', label: 'Marketing', icon: Megaphone },
-    { id: 'reportes', label: 'Analítica', icon: TrendingUp },
-    { id: 'actividades', label: 'Calendario', icon: Calendar },
   ];
 
   // Agregar "Usuarios" solo si es admin
@@ -113,14 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
                     {!isCollapsed && (
-                      <>
-                        <span className="flex-1 text-left">{item.label}</span>
-                        {item.badge && (
-                          <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full shadow-lg">
-                            {item.badge}
-                          </span>
-                        )}
-                      </>
+                      <span className="flex-1 text-left">{item.label}</span>
                     )}
                   </button>
                 </li>
@@ -132,15 +117,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
         {/* Bottom Section */}
         {!isCollapsed && (
           <div className="p-4 border-t border-slate-700 space-y-2">
-            <button className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-200 text-sm">
-              <Bell className="w-5 h-5" />
-              <span>Notificaciones</span>
-              <span className="ml-auto bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">3</span>
-            </button>
-            <button className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-200 text-sm">
-              <Settings className="w-5 h-5" />
-              <span>Configuración</span>
-            </button>
             <button 
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 text-sm"

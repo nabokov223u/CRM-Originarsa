@@ -36,22 +36,16 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
 
   const getStatusColor = (status: LeadStatus) => {
     switch (status) {
-      case 'Nuevo':
+      case 'Por Facturar':
         return 'bg-blue-100 text-blue-800';
-      case 'Contactado':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Calificado':
-        return 'bg-orange-100 text-orange-800';
-      case 'Negociación':
-        return 'bg-purple-100 text-purple-800';
-      case 'Documentación':
-        return 'bg-indigo-100 text-indigo-800';
-      case 'Ganado':
+      case 'Facturado':
         return 'bg-green-100 text-green-800';
-      case 'Nutrición':
-        return 'bg-gray-100 text-gray-800';
-      case 'Perdido':
+      case 'Seguimiento':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Caido':
         return 'bg-red-100 text-red-800';
+      case 'No Contactado':
+        return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -71,14 +65,11 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
   };
 
   const statusOptions: LeadStatus[] = [
-    'Nuevo',
-    'Contactado',
-    'Calificado',
-    'Negociación',
-    'Documentación',
-    'Ganado',
-    'Nutrición',
-    'Perdido',
+    'Por Facturar',
+    'Facturado',
+    'Seguimiento',
+    'Caido',
+    'No Contactado',
   ];
 
   if (leads.length === 0) {

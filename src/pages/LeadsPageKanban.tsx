@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Lead, LeadStatus, Actividad } from '../utils/types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Lead, LeadStatus, Actividad, ETIQUETAS_POR_ESTADO } from '../utils/types';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { LeadsTableView } from '../components/LeadsTableView';
 import { ActivityTimeline } from '../components/ActivityTimeline';
@@ -10,7 +10,8 @@ import { Header } from '../components/HeaderNew';
 import { unifiedLeadsService } from '../services/unifiedLeads';
 import { leadsService } from '../services/firestore/leads';
 import { getActivitiesByLead, createNoteActivity } from '../services/firestore/activities';
-import { LayoutGrid, List } from 'lucide-react';
+import { exportToCSV, exportToJSON, exportToExcel } from '../utils/export';
+import { LayoutGrid, List, Search, Download, ChevronDown } from 'lucide-react';
 
 export const LeadsPageKanban: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -20,9 +21,32 @@ export const LeadsPageKanban: React.FC = () => {
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   
+  // Estado para búsqueda
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  
+  // Estado para editar lead
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Lead>>({});
+  
   // Estado para agregar nota rápida
   const [noteTitle, setNoteTitle] = useState('');
   const [noteDescription, setNoteDescription] = useState('');
+
+  // Estado para crear nuevo lead
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    fullName: '',
+    phone: '',
+    email: '',
+    idNumber: '',
+    vehicleAmount: '',
+    status: 'Por Facturar' as LeadStatus,
+    etiqueta: '',
+    origen: '',
+    asesor: '',
+    observaciones: '',
+  });
 
   // Cargar leads con suscripción en tiempo real
   useEffect(() => {
@@ -97,13 +121,142 @@ export const LeadsPageKanban: React.FC = () => {
   // Manejar clic en lead (abrir modal con detalle)
   const handleLeadClick = (lead: Lead) => {
     setSelectedLead(lead);
+    setIsEditing(false);
+    setEditForm({});
   };
 
   // Cerrar modal
   const handleCloseModal = () => {
     setSelectedLead(null);
+    setIsEditing(false);
+    setEditForm({});
     setNoteTitle('');
     setNoteDescription('');
+  };
+
+  // Iniciar edición del lead
+  const handleStartEdit = () => {
+    if (selectedLead) {
+      setEditForm({
+        fullName: selectedLead.fullName,
+        phone: selectedLead.phone,
+        email: selectedLead.email,
+        origen: selectedLead.origen || '',
+        asesor: selectedLead.asesor || '',
+        vehiculoInteres: selectedLead.vehiculoInteres || '',
+        observaciones: selectedLead.observaciones || '',
+      });
+      setIsEditing(true);
+    }
+  };
+
+  // Guardar edición del lead
+  const handleSaveEdit = async () => {
+    if (!selectedLead) return;
+    const isCrediExpress = selectedLead.id.startsWith('crediexpress_');
+    if (isCrediExpress) {
+      alert('Los leads de CrediExpress no se pueden editar directamente');
+      return;
+    }
+    try {
+      await leadsService.update(selectedLead.id, editForm);
+      setSelectedLead(prev => prev ? { ...prev, ...editForm } : null);
+      setIsEditing(false);
+      console.log('✅ Lead actualizado correctamente');
+    } catch (error) {
+      console.error('Error actualizando lead:', error);
+      alert('Error al guardar los cambios');
+    }
+  };
+
+  // Filtrar leads por búsqueda
+  const filteredLeads = useMemo(() => {
+    if (!searchQuery.trim()) return leads;
+    const q = searchQuery.toLowerCase();
+    const safe = (val: unknown) => (val != null ? String(val).toLowerCase() : '');
+    return leads.filter(lead => 
+      safe(lead.fullName).includes(q) ||
+      safe(lead.phone).includes(q) ||
+      safe(lead.email).includes(q) ||
+      safe(lead.asesor).includes(q) ||
+      safe(lead.origen).includes(q) ||
+      safe(lead.idNumber).includes(q)
+    );
+  }, [leads, searchQuery]);
+
+  // Exportar leads
+  const handleExport = (format: 'csv' | 'json' | 'excel') => {
+    const dataToExport = filteredLeads.map(l => ({
+      Nombre: l.fullName,
+      Teléfono: l.phone,
+      Email: l.email,
+      Cédula: l.idNumber,
+      Estado: l.status,
+      Etiqueta: l.etiqueta || '',
+      Origen: l.origen || '',
+      Asesor: l.asesor || '',
+      'Monto Vehículo': l.vehicleAmount || 0,
+      'Vehículo Interés': l.vehiculoInteres || '',
+      'Fecha Creación': l.fechaCreacion,
+      Observaciones: l.observaciones || '',
+    }));
+    const filename = `leads_${new Date().toISOString().split('T')[0]}`;
+    if (format === 'csv') exportToCSV(dataToExport as any, filename);
+    else if (format === 'json') exportToJSON(dataToExport as any, filename);
+    else exportToExcel(dataToExport as any, filename);
+    setShowExportMenu(false);
+  };
+
+  // Crear nuevo lead
+  const handleCreateLead = async () => {
+    if (!createForm.fullName.trim() || !createForm.phone.trim()) {
+      alert('Por favor ingresa al menos nombre y teléfono');
+      return;
+    }
+
+    try {
+      const newLead: Omit<Lead, 'id'> = {
+        fullName: createForm.fullName.trim(),
+        phone: createForm.phone.trim(),
+        email: createForm.email.trim(),
+        idNumber: createForm.idNumber.trim(),
+        vehicleAmount: createForm.vehicleAmount ? parseFloat(createForm.vehicleAmount) : 0,
+        status: createForm.status,
+        etiqueta: createForm.etiqueta || undefined,
+        origen: createForm.origen.trim() || undefined,
+        asesor: createForm.asesor.trim() || undefined,
+        prioridad: 'Media',
+        fuente: 'Web',
+        fechaCreacion: new Date().toISOString().split('T')[0],
+        observaciones: createForm.observaciones.trim() || undefined,
+        nombres: createForm.fullName.trim().split(' ').slice(0, 2).join(' '),
+        apellidos: createForm.fullName.trim().split(' ').slice(2).join(' '),
+        telefono: createForm.phone.trim(),
+        cedula: createForm.idNumber.trim(),
+        presupuesto: createForm.vehicleAmount ? parseFloat(createForm.vehicleAmount) : 0,
+      };
+
+      await leadsService.create(newLead);
+      console.log('✅ Lead creado correctamente');
+      
+      // Reset form
+      setCreateForm({
+        fullName: '',
+        phone: '',
+        email: '',
+        idNumber: '',
+        vehicleAmount: '',
+        status: 'Por Facturar',
+        etiqueta: '',
+        origen: '',
+        asesor: '',
+        observaciones: '',
+      });
+      setShowCreateModal(false);
+    } catch (error) {
+      console.error('Error creando lead:', error);
+      alert('Error al crear el lead: ' + (error as Error).message);
+    }
   };
 
   // Agregar nota rápida
@@ -159,53 +312,79 @@ export const LeadsPageKanban: React.FC = () => {
       {/* Header Estilo Bitrix24 */}
       <Header 
         title="Leads"
-        onCreateNew={() => alert('Crear nuevo lead')}
+        onCreateNew={() => setShowCreateModal(true)}
         createButtonText="Crear"
       />
 
-      {/* Tabs y Filtros - Estilo Bitrix24 */}
+      {/* Barra de búsqueda, exportar y vista */}
       <div className="bg-white border-b border-gray-200 px-6 py-3">
-        <div className="flex items-center justify-between">
-          {/* Tabs */}
-          <div className="flex gap-6">
-            <button className="pb-3 border-b-2 border-blue-600 text-blue-600 font-medium text-sm">
-              General
-            </button>
-            <button className="pb-3 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm">
-              En progreso
-            </button>
-            <button className="pb-3 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm">
-              Ganados
-            </button>
-            <button className="pb-3 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm">
-              Perdidos
-            </button>
+        <div className="flex items-center justify-between gap-4">
+          {/* Búsqueda */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por nombre, teléfono, asesor, origen..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+            />
           </div>
 
-          {/* Botones de vista */}
-          <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('kanban')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
-                viewMode === 'kanban'
-                  ? 'bg-white shadow-sm text-gray-900'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <LayoutGrid className="w-4 h-4" />
-              Kanban
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
-                viewMode === 'list'
-                  ? 'bg-white shadow-sm text-gray-900'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <List className="w-4 h-4" />
-              Lista
-            </button>
+          <div className="flex items-center gap-3">
+            {/* Exportar */}
+            <div className="relative">
+              <button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Exportar
+                <ChevronDown className="w-3 h-3" />
+              </button>
+              {showExportMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)} />
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                    <button onClick={() => handleExport('csv')} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                      📄 Exportar CSV
+                    </button>
+                    <button onClick={() => handleExport('json')} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                      🔧 Exportar JSON
+                    </button>
+                    <button onClick={() => handleExport('excel')} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                      📊 Exportar Excel
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Botones de vista */}
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
+                  viewMode === 'kanban'
+                    ? 'bg-white shadow-sm text-gray-900'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Kanban
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-white shadow-sm text-gray-900'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <List className="w-4 h-4" />
+                Lista
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -215,7 +394,7 @@ export const LeadsPageKanban: React.FC = () => {
         {/* Vista Kanban */}
         {viewMode === 'kanban' && (
           <KanbanBoard
-            leads={leads}
+            leads={filteredLeads}
             onLeadClick={handleLeadClick}
             onStatusChange={handleStatusChange}
           />
@@ -224,7 +403,7 @@ export const LeadsPageKanban: React.FC = () => {
         {/* Vista Lista */}
         {viewMode === 'list' && (
           <LeadsTableView
-            leads={leads}
+            leads={filteredLeads}
             onLeadClick={handleLeadClick}
             onStatusChange={handleStatusChange}
           />
@@ -239,51 +418,196 @@ export const LeadsPageKanban: React.FC = () => {
           title={`Lead: ${selectedLead.fullName}`}
         >
           <div className="space-y-6">
-            {/* Información del lead */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Nombre Completo</label>
-                <p className="text-gray-900">{selectedLead.fullName}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Estado</label>
-                <p className="text-gray-900">
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                    {selectedLead.status}
-                  </span>
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Teléfono</label>
-                <p className="text-gray-900">{selectedLead.phone}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Email</label>
-                <p className="text-gray-900">{selectedLead.email}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Monto Vehículo</label>
-                <p className="text-green-600 font-bold">
-                  {formatCurrency(selectedLead.vehicleAmount || 0)}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Fuente</label>
-                <p className="text-gray-900">🔥 {selectedLead.fuente}</p>
-              </div>
-              {selectedLead.asignadoA && (
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Asignado a</label>
-                  <p className="text-gray-900">👤 {selectedLead.asignadoA}</p>
-                </div>
+            {/* Botón editar / guardar */}
+            <div className="flex justify-end gap-2">
+              {!selectedLead.id.startsWith('crediexpress_') && (
+                isEditing ? (
+                  <>
+                    <Button onClick={handleSaveEdit} variant="primary">
+                      💾 Guardar
+                    </Button>
+                    <Button variant="secondary" onClick={() => setIsEditing(false)}>
+                      Cancelar
+                    </Button>
+                  </>
+                ) : (
+                  <Button onClick={handleStartEdit} variant="secondary">
+                    ✏️ Editar
+                  </Button>
+                )
               )}
-              {selectedLead.vehiculoInteres && (
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Vehículo de Interés</label>
-                  <p className="text-gray-900">🚗 {selectedLead.vehiculoInteres}</p>
-                </div>
+              {/* WhatsApp */}
+              {selectedLead.phone && (
+                <a
+                  href={`https://wa.me/${selectedLead.phone.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  💬 WhatsApp
+                </a>
               )}
             </div>
+
+            {/* Información del lead */}
+            {isEditing ? (
+              <div className="space-y-4">
+                <Input
+                  label="Nombre Completo"
+                  value={editForm.fullName || ''}
+                  onChange={(val) => setEditForm({...editForm, fullName: val})}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Teléfono"
+                    value={editForm.phone || ''}
+                    onChange={(val) => setEditForm({...editForm, phone: val})}
+                  />
+                  <Input
+                    label="Email"
+                    value={editForm.email || ''}
+                    onChange={(val) => setEditForm({...editForm, email: val})}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Origen"
+                    value={editForm.origen || ''}
+                    onChange={(val) => setEditForm({...editForm, origen: val})}
+                    placeholder="Ej: Facebook Ads, Google, n8n"
+                  />
+                  <Input
+                    label="Asesor a Cargo"
+                    value={editForm.asesor || ''}
+                    onChange={(val) => setEditForm({...editForm, asesor: val})}
+                    placeholder="Nombre del asesor"
+                  />
+                </div>
+                <Input
+                  label="Vehículo de Interés"
+                  value={editForm.vehiculoInteres || ''}
+                  onChange={(val) => setEditForm({...editForm, vehiculoInteres: val})}
+                  placeholder="Modelo del vehículo"
+                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+                  <textarea
+                    value={editForm.observaciones || ''}
+                    onChange={(e) => setEditForm({...editForm, observaciones: e.target.value})}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Nombre Completo</label>
+                  <p className="text-gray-900">{selectedLead.fullName}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Estado</label>
+                  <p className="text-gray-900">
+                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                      {selectedLead.status}
+                    </span>
+                    {selectedLead.etiqueta && (
+                      <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-xs">
+                        🏷️ {selectedLead.etiqueta}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Teléfono</label>
+                  <p className="text-gray-900">{selectedLead.phone}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Email</label>
+                  <p className="text-gray-900">{selectedLead.email}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Monto Vehículo</label>
+                  <p className="text-green-600 font-bold">
+                    {formatCurrency(selectedLead.vehicleAmount || 0)}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Fuente</label>
+                  <p className="text-gray-900">🔥 {selectedLead.fuente}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Origen</label>
+                  <p className="text-gray-900">📡 {selectedLead.origen || 'Sin definir'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Asesor a Cargo</label>
+                  <p className="text-gray-900">👤 {selectedLead.asesor || 'Sin asignar'}</p>
+                </div>
+                {selectedLead.vehiculoInteres && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Vehículo de Interés</label>
+                    <p className="text-gray-900">🚗 {selectedLead.vehiculoInteres}</p>
+                  </div>
+                )}
+                {selectedLead.observaciones && (
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-gray-700">Observaciones</label>
+                    <p className="text-gray-700 text-sm whitespace-pre-line">{selectedLead.observaciones}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Selector de etiqueta */}
+            {ETIQUETAS_POR_ESTADO[selectedLead.status] && (
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-gray-900 mb-3">🏷️ Etiqueta</h3>
+                <div className="flex flex-wrap gap-2">
+                  {ETIQUETAS_POR_ESTADO[selectedLead.status].map(tag => (
+                    <button
+                      key={tag}
+                      onClick={async () => {
+                        try {
+                          const isCrediExpress = selectedLead.id.startsWith('crediexpress_');
+                          if (!isCrediExpress) {
+                            await leadsService.update(selectedLead.id, { etiqueta: tag });
+                          }
+                          setSelectedLead(prev => prev ? { ...prev, etiqueta: tag } : null);
+                        } catch (error) {
+                          console.error('Error actualizando etiqueta:', error);
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        selectedLead.etiqueta === tag
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-amber-100 hover:text-amber-800'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                  {selectedLead.etiqueta && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const isCrediExpress = selectedLead.id.startsWith('crediexpress_');
+                          if (!isCrediExpress) {
+                            await leadsService.update(selectedLead.id, { etiqueta: '' });
+                          }
+                          setSelectedLead(prev => prev ? { ...prev, etiqueta: undefined } : null);
+                        } catch (error) {
+                          console.error('Error quitando etiqueta:', error);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-full text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100"
+                    >
+                      ✕ Quitar
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Agregar nota rápida */}
             <div className="border-t pt-4">
@@ -326,6 +650,121 @@ export const LeadsPageKanban: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      {/* Modal de Crear Nuevo Lead */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Crear Nuevo Lead"
+        footer={
+          <>
+            <Button onClick={handleCreateLead} variant="primary">
+              Crear Lead
+            </Button>
+            <Button variant="secondary" onClick={() => setShowCreateModal(false)}>
+              Cancelar
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Input
+            label="Nombre Completo *"
+            value={createForm.fullName}
+            onChange={(val) => setCreateForm({...createForm, fullName: val})}
+            placeholder="Ej: Juan Pérez García"
+          />
+          
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Teléfono *"
+              value={createForm.phone}
+              onChange={(val) => setCreateForm({...createForm, phone: val})}
+              placeholder="Ej: 0991234567"
+            />
+            <Input
+              label="Email"
+              value={createForm.email}
+              onChange={(val) => setCreateForm({...createForm, email: val})}
+              placeholder="correo@ejemplo.com"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Cédula / ID"
+              value={createForm.idNumber}
+              onChange={(val) => setCreateForm({...createForm, idNumber: val})}
+              placeholder="0912345678"
+            />
+            <Input
+              label="Monto Vehículo ($)"
+              value={createForm.vehicleAmount}
+              onChange={(val) => setCreateForm({...createForm, vehicleAmount: val})}
+              placeholder="25000"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                value={createForm.status}
+                onChange={(e) => setCreateForm({...createForm, status: e.target.value as LeadStatus, etiqueta: ''})}
+              >
+                <option value="Por Facturar">Por Facturar</option>
+                <option value="Facturado">Facturado</option>
+                <option value="Seguimiento">Seguimiento</option>
+                <option value="Caido">Caído</option>
+                <option value="No Contactado">No Contactado</option>
+              </select>
+            </div>
+
+            {ETIQUETAS_POR_ESTADO[createForm.status] && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Etiqueta</label>
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  value={createForm.etiqueta}
+                  onChange={(e) => setCreateForm({...createForm, etiqueta: e.target.value})}
+                >
+                  <option value="">Sin etiqueta</option>
+                  {ETIQUETAS_POR_ESTADO[createForm.status].map(tag => (
+                    <option key={tag} value={tag}>{tag}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Origen"
+              value={createForm.origen}
+              onChange={(val) => setCreateForm({...createForm, origen: val})}
+              placeholder="Ej: Facebook Ads, Google, n8n"
+            />
+            <Input
+              label="Asesor a Cargo"
+              value={createForm.asesor}
+              onChange={(val) => setCreateForm({...createForm, asesor: val})}
+              placeholder="Nombre del asesor"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+            <textarea
+              value={createForm.observaciones}
+              onChange={(e) => setCreateForm({...createForm, observaciones: e.target.value})}
+              placeholder="Notas adicionales..."
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -113,12 +113,12 @@ export const unifiedLeadsService = {
     
     // Opcionalmente, también actualizar el status de CrediExpress si es relevante
     // Solo cambiamos el status de CrediExpress para estados finales
-    if (newStatus === "Ganado") {
+    if (newStatus === "Facturado") {
       await applicationsService.updateStatus(id, "approved");
-    } else if (newStatus === "Perdido") {
+    } else if (newStatus === "Caido") {
       await applicationsService.updateStatus(id, "rejected");
     }
-    // Para otros estados (Nuevo, Contactado, Calificado, Negociación, Documentación, Nutrición)
+    // Para otros estados (Por Facturar, Seguimiento, No Contactado)
     // solo guardamos en crmStatus, manteniendo el status original de CrediExpress
     
     console.log(`✅ Application ${id} actualizada a CRM status: ${newStatus}`);

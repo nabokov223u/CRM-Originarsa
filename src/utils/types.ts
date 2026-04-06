@@ -1,13 +1,17 @@
 // Estados del pipeline de ventas
 export type LeadStatus = 
-  | "Nuevo"           // Llega de CrediExpress, sin contactar
-  | "Contactado"      // Primer contacto realizado
-  | "Calificado"      // Interés alto, listo para cerrar
-  | "Negociación"     // Eligiendo vehículo/condiciones
-  | "Documentación"   // Preparando cierre
-  | "Ganado"          // Venta cerrada
-  | "Nutrición"       // No listo aún, follow-up
-  | "Perdido";        // No cerró
+  | "Por Facturar"     // Lead listo para facturar
+  | "Facturado"       // Factura emitida
+  | "Seguimiento"     // En seguimiento activo
+  | "Caido"           // Lead perdido/caído
+  | "No Contactado";  // No se ha logrado contactar
+
+// Etiquetas por estado del pipeline
+export const ETIQUETAS_POR_ESTADO: Record<string, string[]> = {
+  'Seguimiento': ['Condiciones', 'Inventario'],
+  'Caido': ['Contado', 'Cotización', 'Competencia'],
+  'No Contactado': ['Inubicable', 'Seguimiento'],
+};
 
 // Prioridad del lead
 export type LeadPriority = "Alta" | "Media" | "Baja";
@@ -50,9 +54,16 @@ export interface Lead {
     descripcion: string;
   };
   
+  // ===== ORIGEN Y ASESOR =====
+  origen?: string;              // Origen del lead (CrediExpress, Facebook Ads, Google Ads, n8n campaign, etc.)
+  asesor?: string;              // Asesor a cargo del lead
+  
+  // ===== ETIQUETA DE ESTADO =====
+  etiqueta?: string;            // Etiqueta/tag dentro del estado (ej: Condiciones, Inventario)
+  
   // ===== RESULTADO =====
-  motivoPerdida?: string;       // Si status = "Perdido"
-  fechaCierre?: string;         // Si status = "Ganado"
+  motivoPerdida?: string;       // Si status = "Caido"
+  fechaCierre?: string;         // Si status = "Facturado"
   montoFinal?: number;          // Monto final del cierre
   
   // ===== CAMPOS DE FIREBASE =====

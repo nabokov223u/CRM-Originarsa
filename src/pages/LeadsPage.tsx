@@ -42,7 +42,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     idNumber: '',
     maritalStatus: '',
     modelo: '',
-    status: 'Nuevo' as Lead['status'],
+    status: 'Por Facturar' as Lead['status'],
     fuente: 'Web' as Lead['fuente'],
     vehicleAmount: '',
     downPaymentPct: '',
@@ -65,7 +65,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
       idNumber: '',
       maritalStatus: '',
       modelo: '',
-      status: 'Nuevo',
+      status: 'Por Facturar',
       fuente: 'Web',
       vehicleAmount: '',
       downPaymentPct: '',
@@ -301,11 +301,11 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
-                        lead.status === 'Nuevo' ? 'bg-primary/10 text-primary' :
-                        lead.status === 'Contactado' ? 'bg-yellow-50 text-yellow-700' :
-                        lead.status === 'Negociación' ? 'bg-orange-50 text-orange-700' :
-                        lead.status === 'Ganado' ? 'bg-green-50 text-green-700' :
-                        'bg-red-50 text-red-700'
+                        lead.status === 'Por Facturar' ? 'bg-primary/10 text-primary' :
+                        lead.status === 'Facturado' ? 'bg-green-50 text-green-700' :
+                        lead.status === 'Seguimiento' ? 'bg-yellow-50 text-yellow-700' :
+                        lead.status === 'Caido' ? 'bg-red-50 text-red-700' :
+                        'bg-purple-50 text-purple-700'
                       }`}>
                         {lead.status}
                       </span>

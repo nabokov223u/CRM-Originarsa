@@ -5,16 +5,15 @@ import type { Lead } from './types';
 export function convertApplicationToLead(application: Application): Omit<Lead, 'id'> {
   // ✅ Estructura de datos corregida - usando applicant.* y status directo
 
-  // Determinar el status basado en crmStatus si existe, sino siempre "Nuevo" para nuevos leads de CrediExpress
-  let status: Lead['status'] = 'Nuevo';
+  // Determinar el status basado en crmStatus si existe, sino siempre "Por Facturar" para nuevos leads de CrediExpress
+  let status: Lead['status'] = 'Por Facturar';
   
   if (application.crmStatus) {
     // Si tiene un estado del CRM guardado, usarlo directamente
     status = application.crmStatus as Lead['status'];
   } else {
-    // Todos los nuevos leads de CrediExpress empiezan en "Nuevo"
-    // El asesor los mueve a Contactado y luego a Calificado
-    status = 'Nuevo';
+    // Todos los nuevos leads de CrediExpress empiezan en "Por Facturar"
+    status = 'Por Facturar';
   }
 
   // Crear fecha de creación
@@ -67,6 +66,10 @@ export function convertApplicationToLead(application: Application): Omit<Lead, '
     vehiculoInteres: 'Por definir',
     observaciones: notasArray.join('\n'),
     asignadoA: undefined, // Sin asignar inicialmente
+    
+    // Origen y asesor
+    origen: 'CrediExpress',
+    asesor: 'Telemarketing',
     
     // Firebase
     createdAt: application.createdAt,

@@ -14,12 +14,11 @@ const KANBAN_COLUMNS: Array<{
   title: string;
   color: string;
 }> = [
-  { status: 'Nuevo', title: '🆕 Nuevos', color: 'primary' },
-  { status: 'Contactado', title: '📞 Contactados', color: 'yellow' },
-  { status: 'Calificado', title: '🔥 Calificados', color: 'orange' },
-  { status: 'Negociación', title: '💬 Negociación', color: 'purple' },
-  { status: 'Documentación', title: '📝 Documentación', color: 'secondary' },
-  { status: 'Ganado', title: '✅ Ganados', color: 'green' },
+  { status: 'Por Facturar', title: '📋 Por Facturar', color: 'primary' },
+  { status: 'Facturado', title: '✅ Facturado', color: 'green' },
+  { status: 'Seguimiento', title: '🔄 Seguimiento', color: 'yellow' },
+  { status: 'Caido', title: '❌ Caído', color: 'orange' },
+  { status: 'No Contactado', title: '📵 No Contactado', color: 'purple' },
 ];
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
@@ -30,20 +29,20 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   // Agrupar leads por estado
   const leadsByStatus = React.useMemo(() => {
     const grouped: Record<LeadStatus, Lead[]> = {
-      'Nuevo': [],
-      'Contactado': [],
-      'Calificado': [],
-      'Negociación': [],
-      'Documentación': [],
-      'Ganado': [],
-      'Nutrición': [],
-      'Perdido': [],
+      'Por Facturar': [],
+      'Facturado': [],
+      'Seguimiento': [],
+      'Caido': [],
+      'No Contactado': [],
     };
 
     leads.forEach((lead) => {
-      const status = lead.status || 'Nuevo';
+      const status = lead.status || 'Por Facturar';
       if (grouped[status]) {
         grouped[status].push(lead);
+      } else {
+        // Mapear estados antiguos al nuevo pipeline
+        grouped['Por Facturar'].push(lead);
       }
     });
 
@@ -53,7 +52,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   // Calcular estadísticas
   const stats = React.useMemo(() => {
     const totalValue = leads.reduce((sum, lead) => sum + (lead.vehicleAmount || 0), 0);
-    const wonLeads = leadsByStatus['Ganado'].length;
+    const wonLeads = leadsByStatus['Facturado'].length;
     const totalLeads = leads.length;
     const conversionRate = totalLeads > 0 ? (wonLeads / totalLeads) * 100 : 0;
 
@@ -88,7 +87,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         </div>
         
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600">Ganados</div>
+          <div className="text-sm text-gray-600">Facturados</div>
           <div className="text-2xl font-bold text-emerald-600">{stats.wonLeads}</div>
         </div>
         
@@ -121,33 +120,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 onDrop={onStatusChange}
               />
             ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Sección de Nutrición y Perdidos (colapsable) */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-gray-700">🌱 En Nutrición</h3>
-            <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-sm">
-              {leadsByStatus['Nutrición']?.length || 0}
-            </span>
-          </div>
-          <div className="text-sm text-gray-600">
-            Leads que requieren seguimiento a largo plazo
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-gray-700">❌ Perdidos</h3>
-            <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-sm">
-              {leadsByStatus['Perdido']?.length || 0}
-            </span>
-          </div>
-          <div className="text-sm text-gray-600">
-            Leads que no continuaron con el proceso
           </div>
         </div>
       </div>

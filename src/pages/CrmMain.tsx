@@ -6,7 +6,6 @@ import { Header } from '../components/Header';
 import { Dashboard } from './DashboardNew';
 import { LeadsPageKanban } from './LeadsPageKanban';
 import { ClientesPage } from './ClientesPage';
-import { MarketingPage } from './MarketingPage';
 import { UserManagementPage } from './UserManagementPage';
 import { Button } from '../components/Button';
 import { Lead, Cliente } from '../utils/types';
@@ -115,44 +114,11 @@ export function CrmMain() {
         <Route path="/dashboard" element={<Dashboard leads={leads} />} />
         <Route path="/leads" element={<LeadsPageKanban />} />
         <Route path="/clientes" element={<ClientesPage clientes={clientes} />} />
-        <Route path="/marketing" element={<MarketingPage />} />
         
         {/* Ruta solo para admins */}
         {isAdmin && (
           <Route path="/usuarios" element={<UserManagementPage />} />
         )}
-        
-        {/* Módulos en desarrollo */}
-        <Route
-          path="/vehiculos"
-          element={
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">🚗</div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Vehículos</h2>
-              <p className="text-gray-600">Módulo en desarrollo</p>
-            </div>
-          }
-        />
-        <Route
-          path="/actividades"
-          element={
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">📅</div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Actividades</h2>
-              <p className="text-gray-600">Módulo en desarrollo</p>
-            </div>
-          }
-        />
-        <Route
-          path="/reportes"
-          element={
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">📈</div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Reportes</h2>
-              <p className="text-gray-600">Módulo en desarrollo</p>
-            </div>
-          }
-        />
         
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
@@ -165,11 +131,7 @@ export function CrmMain() {
       dashboard: { title: 'Dashboard', subtitle: 'Resumen general de tu CRM' },
       leads: { title: 'Gestión de Leads', subtitle: 'Administra tus prospectos de venta' },
       clientes: { title: 'Clientes', subtitle: 'Base de datos de clientes' },
-      marketing: { title: 'Marketing y Estrategia', subtitle: 'Ciclo de vida del cliente y campañas' },
       usuarios: { title: 'Gestión de Usuarios', subtitle: 'Administra accesos al sistema' },
-      vehiculos: { title: 'Vehículos', subtitle: 'Inventario y catálogo' },
-      actividades: { title: 'Actividades', subtitle: 'Tareas y seguimientos' },
-      reportes: { title: 'Reportes', subtitle: 'Análisis y estadísticas' },
     };
     return titles[activeTab] || titles.dashboard;
   };

@@ -223,12 +223,25 @@ const KanbanCard: React.FC<KanbanCardProps> = ({
         )}
       </div>
 
-      {/* Fuente */}
-      <div className="mt-2 pt-2 border-t border-gray-100">
+      {/* Asesor */}
+      {lead.asesor && (
+        <div className="flex items-center text-xs text-gray-600">
+          <span className="mr-1">👤</span>
+          <span className="truncate">{lead.asesor}</span>
+        </div>
+      )}
+
+      {/* Fuente y Origen */}
+      <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
         <span className="inline-flex items-center text-xs text-gray-500">
-          <span className="mr-1">🔥</span>
-          {lead.fuente}
+          <span className="mr-1">📡</span>
+          {lead.origen || lead.fuente}
         </span>
+        {lead.etiqueta && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800">
+            🏷️ {lead.etiqueta}
+          </span>
+        )}
       </div>
     </div>
   );

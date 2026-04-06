@@ -39,48 +39,44 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
   
   // Leads por estado
   const leadsPorEstado = {
-    nuevo: leads.filter(l => l.status === 'Nuevo').length,
-    contactado: leads.filter(l => l.status === 'Contactado').length,
-    calificado: leads.filter(l => l.status === 'Calificado').length,
-    negociacion: leads.filter(l => l.status === 'Negociación').length,
-    documentacion: leads.filter(l => l.status === 'Documentación').length,
-    ganado: leads.filter(l => l.status === 'Ganado').length,
-    nutricion: leads.filter(l => l.status === 'Nutrición').length,
-    perdido: leads.filter(l => l.status === 'Perdido').length,
+    porFacturar: leads.filter(l => l.status === 'Por Facturar').length,
+    facturado: leads.filter(l => l.status === 'Facturado').length,
+    seguimiento: leads.filter(l => l.status === 'Seguimiento').length,
+    caido: leads.filter(l => l.status === 'Caido').length,
+    noContactado: leads.filter(l => l.status === 'No Contactado').length,
   };
 
-  // Total de leads activos (excluye ganados, perdidos y nutrición)
+  // Total de leads activos (excluye caídos)
   const leadsActivos = leads.filter(l => 
-    !['Ganado', 'Perdido', 'Nutrición'].includes(l.status)
+    !['Caido'].includes(l.status)
   ).length;
 
-  // 🎯 TASA DE CONTACTABILIDAD: (Calificados + estados superiores) / Total
-  // Mide el éxito de contactar y calificar leads (paso de Contactado → Calificado)
-  const leadsCalificadosOMas = leads.filter(l => 
-    ['Calificado', 'Negociación', 'Documentación', 'Ganado'].includes(l.status)
+  // Tasa de contactabilidad: (Facturado + Seguimiento) / Total
+  const leadsContactados = leads.filter(l => 
+    ['Facturado', 'Seguimiento'].includes(l.status)
   ).length;
   const tasaContactabilidad = leads.length > 0 
-    ? Math.round((leadsCalificadosOMas / leads.length) * 100) 
+    ? Math.round((leadsContactados / leads.length) * 100) 
     : 0;
 
-  // Tasa de conversión: Ganados / Total
+  // Tasa de conversión: Facturados / Total
   const tasaConversion = leads.length > 0 
-    ? Math.round((leadsPorEstado.ganado / leads.length) * 100) 
+    ? Math.round((leadsPorEstado.facturado / leads.length) * 100) 
     : 0;
 
   // Valor total del pipeline (solo leads activos)
   const valorPipeline = leads
-    .filter(l => !['Ganado', 'Perdido', 'Nutrición'].includes(l.status))
+    .filter(l => !['Caido'].includes(l.status))
     .reduce((sum, lead) => sum + (lead.vehicleAmount || 0), 0);
 
-  // Valor de negocios ganados
+  // Valor de negocios facturados
   const valorGanados = leads
-    .filter(l => l.status === 'Ganado')
+    .filter(l => l.status === 'Facturado')
     .reduce((sum, lead) => sum + (lead.montoFinal || lead.vehicleAmount || 0), 0);
 
-  // Leads urgentes (nuevos de alta prioridad)
+  // Leads urgentes (Por Facturar de alta prioridad)
   const leadsUrgentes = leads.filter(l => 
-    l.status === 'Nuevo' && l.prioridad === 'Alta'
+    l.status === 'Por Facturar' && l.prioridad === 'Alta'
   ).length;
 
   // Leads de CrediExpress esta semana
@@ -102,13 +98,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Nuevo': return 'text-primary';
-      case 'Contactado': return 'text-yellow-600';
-      case 'Calificado': return 'text-orange-600';
-      case 'Negociación': return 'text-purple-600';
-      case 'Documentación': return 'text-secondary';
-      case 'Ganado': return 'text-emerald-600';
-      case 'Perdido': return 'text-red-600';
+      case 'Por Facturar': return 'text-primary';
+      case 'Facturado': return 'text-emerald-600';
+      case 'Seguimiento': return 'text-yellow-600';
+      case 'Caido': return 'text-red-600';
+      case 'No Contactado': return 'text-purple-600';
       default: return 'text-gray-600';
     }
   };
@@ -154,8 +148,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
         />
         
         <StatCard
-          title="En Negociación"
-          value={leadsPorEstado.negociacion + leadsPorEstado.documentacion}
+          title="En Seguimiento"
+          value={leadsPorEstado.seguimiento}
           icon="💼"
         />
         
@@ -186,14 +180,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Ganados</p>
+              <p className="text-sm font-medium text-gray-600">Facturados</p>
               <p className="text-2xl font-bold text-emerald-600 mt-1">
                 {formatCurrency(valorGanados)}
               </p>
             </div>
             <div className="text-3xl">✅</div>
           </div>
-          <p className="text-xs text-gray-500 mt-2">{leadsPorEstado.ganado} cierres</p>
+          <p className="text-xs text-gray-500 mt-2">{leadsPorEstado.facturado} cierres</p>
         </Card>
 
         <Card>
@@ -228,13 +222,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Pipeline de Ventas</h2>
           <div className="space-y-3">
             {[
-              { status: 'Nuevo', count: leadsPorEstado.nuevo, color: 'bg-primary', total: leads.length },
-              { status: 'Contactado', count: leadsPorEstado.contactado, color: 'bg-orange-500', total: leads.length },
-              { status: 'Calificado', count: leadsPorEstado.calificado, color: 'bg-lime-500', total: leads.length },
-              { status: 'Negociación', count: leadsPorEstado.negociacion, color: 'bg-amber-500', total: leads.length },
-              { status: 'Documentación', count: leadsPorEstado.documentacion, color: 'bg-secondary', total: leads.length },
-              { status: 'Ganado', count: leadsPorEstado.ganado, color: 'bg-green-500', total: leads.length },
-              { status: 'Perdido', count: leadsPorEstado.perdido, color: 'bg-red-500', total: leads.length },
+              { status: 'Por Facturar', count: leadsPorEstado.porFacturar, color: 'bg-primary', total: leads.length },
+              { status: 'Facturado', count: leadsPorEstado.facturado, color: 'bg-green-500', total: leads.length },
+              { status: 'Seguimiento', count: leadsPorEstado.seguimiento, color: 'bg-yellow-500', total: leads.length },
+              { status: 'Caido', count: leadsPorEstado.caido, color: 'bg-red-500', total: leads.length },
+              { status: 'No Contactado', count: leadsPorEstado.noContactado, color: 'bg-purple-500', total: leads.length },
             ].map((item) => {
               const percentage = item.total > 0 ? (item.count / item.total) * 100 : 0;
               return (
