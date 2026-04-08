@@ -17,7 +17,7 @@ export const ETIQUETAS_POR_ESTADO: Record<string, string[]> = {
 export type LeadPriority = "Alta" | "Media" | "Baja";
 
 // Fuentes de leads
-export type LeadSource = "CrediExpress" | "Web" | "Referido" | "Redes Sociales" | "Llamada" | "Otro";
+export type LeadSource = "CrediExpress" | "Aprobados no Facturados" | "Web" | "Referido" | "Redes Sociales" | "Llamada" | "Otro" | string;
 
 export interface Lead {
   id: string;
@@ -60,6 +60,7 @@ export interface Lead {
   
   // ===== ETIQUETA DE ESTADO =====
   etiqueta?: string;            // Etiqueta/tag dentro del estado (ej: Condiciones, Inventario)
+  ultimaNota?: string;          // Última nota escrita por el asesor
   
   // ===== RESULTADO =====
   motivoPerdida?: string;       // Si status = "Caido"

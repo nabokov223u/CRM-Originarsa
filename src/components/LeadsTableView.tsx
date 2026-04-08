@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Lead, LeadStatus } from '../utils/types';
 
 interface LeadsTableViewProps {
@@ -51,19 +51,6 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
     }
   };
 
-  const getPriorityBadge = (priority?: string) => {
-    switch (priority) {
-      case 'Alta':
-        return <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">Alta</span>;
-      case 'Media':
-        return <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700">Media</span>;
-      case 'Baja':
-        return <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">Baja</span>;
-      default:
-        return null;
-    }
-  };
-
   const statusOptions: LeadStatus[] = [
     'Por Facturar',
     'Facturado',
@@ -71,6 +58,21 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
     'Caido',
     'No Contactado',
   ];
+
+  const getEtiquetaColor = (etiqueta?: string) => {
+    switch (etiqueta) {
+      case 'Condiciones': return 'bg-amber-100 text-amber-800';
+      case 'Inventario': return 'bg-indigo-100 text-indigo-800';
+      case 'Contado': return 'bg-emerald-100 text-emerald-800';
+      case 'Cotización': return 'bg-cyan-100 text-cyan-800';
+      case 'Competencia': return 'bg-rose-100 text-rose-800';
+      case 'Inubicable': return 'bg-gray-200 text-gray-700';
+      case 'Seguimiento': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-600';
+    }
+  };
+
+  const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
 
   if (leads.length === 0) {
     return (
@@ -88,10 +90,10 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[180px]">
                 Cliente
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[160px]">
                 Contacto
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -101,16 +103,16 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
                 Estado
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Prioridad
+                Etiqueta
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Asignado a
+                Asesor
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Fecha
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Fuente
+                Última Nota
               </th>
             </tr>
           </thead>
@@ -121,10 +123,10 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
                 className="hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() => onLeadClick(lead)}
               >
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-4 whitespace-nowrap max-w-[180px]">
                   <div className="flex items-center">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
+                    <div className="truncate">
+                      <div className="text-sm font-medium text-gray-900 truncate">
                         {lead.fullName}
                       </div>
                       <div className="text-sm text-gray-500">
@@ -133,9 +135,9 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">📱 {lead.phone}</div>
-                  <div className="text-sm text-gray-500">📧 {lead.email}</div>
+                <td className="px-3 py-4 whitespace-nowrap max-w-[160px]">
+                  <div className="text-sm text-gray-900 truncate">📱 {lead.phone}</div>
+                  <div className="text-sm text-gray-500 truncate">📧 {lead.email}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-bold text-green-600">
@@ -167,13 +169,19 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
                   </select>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {getPriorityBadge(lead.prioridad)}
+                  {lead.etiqueta ? (
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getEtiquetaColor(lead.etiqueta)}`}>
+                      🏷️ {lead.etiqueta}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 text-xs">—</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {lead.asignadoA ? (
+                  {lead.asesor ? (
                     <span className="flex items-center">
                       <span className="mr-1">👤</span>
-                      {lead.asignadoA}
+                      {lead.asesor}
                     </span>
                   ) : (
                     <span className="text-gray-400">Sin asignar</span>
@@ -182,10 +190,24 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {formatDate(lead.fechaCreacion)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                    🔥 {lead.fuente}
-                  </span>
+                <td className="px-6 py-4 text-sm text-gray-600 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
+                  {lead.ultimaNota ? (
+                    <div>
+                      <p className={`${expandedNotes[lead.id] ? '' : 'line-clamp-2'} text-gray-700`}>
+                        {lead.ultimaNota}
+                      </p>
+                      {lead.ultimaNota.length > 60 && (
+                        <button
+                          onClick={() => setExpandedNotes(prev => ({ ...prev, [lead.id]: !prev[lead.id] }))}
+                          className="text-blue-600 hover:text-blue-800 text-xs mt-1 font-medium"
+                        >
+                          {expandedNotes[lead.id] ? 'Ver menos' : 'Ver más'}
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 text-xs">Sin notas</span>
+                  )}
                 </td>
               </tr>
             ))}

@@ -501,6 +501,91 @@ export const setAdminRole = functions.https.onCall(async (data, context) => {
   }
 });
 
+// 🔐 Función para actualizar displayName de un usuario (solo admins)
+export const updateUserDisplayName = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Debes estar autenticado');
+  }
+
+  const callerUser = await admin.auth().getUser(context.auth.uid);
+  if (!callerUser.customClaims?.admin) {
+    throw new functions.https.HttpsError('permission-denied', 'Solo administradores');
+  }
+
+  const { email, displayName } = data;
+  if (!email || !displayName) {
+    throw new functions.https.HttpsError('invalid-argument', 'Email y displayName son requeridos');
+  }
+
+  try {
+    const user = await admin.auth().getUserByEmail(email);
+    await admin.auth().updateUser(user.uid, { displayName });
+    console.log(`✅ displayName de ${email} actualizado a: ${displayName}`);
+    return { success: true, message: `displayName actualizado a "${displayName}" para ${email}` };
+  } catch (error: any) {
+    console.error('❌ Error actualizando displayName:', error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+// 🔐 Función para listar todos los usuarios de Firebase Auth (solo admins)
+export const listUsers = functions.https.onCall(async (_data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Debes estar autenticado');
+  }
+
+  const callerUser = await admin.auth().getUser(context.auth.uid);
+  if (!callerUser.customClaims?.admin) {
+    throw new functions.https.HttpsError('permission-denied', 'Solo administradores');
+  }
+
+  try {
+    const listResult = await admin.auth().listUsers(100);
+    const users = listResult.users.map(u => ({
+      uid: u.uid,
+      email: u.email || '',
+      displayName: u.displayName || '',
+      disabled: u.disabled,
+      customClaims: u.customClaims || {},
+      lastSignIn: u.metadata.lastSignInTime || null,
+      createdAt: u.metadata.creationTime || null,
+    }));
+    return { users };
+  } catch (error: any) {
+    console.error('❌ Error listando usuarios:', error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+// 🔐 Función para actualizar rol de un usuario (solo admins)
+export const updateUserRole = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Debes estar autenticado');
+  }
+
+  const callerUser = await admin.auth().getUser(context.auth.uid);
+  if (!callerUser.customClaims?.admin) {
+    throw new functions.https.HttpsError('permission-denied', 'Solo administradores');
+  }
+
+  const { uid, role } = data;
+  if (!uid || !role || !['admin', 'vendedor'].includes(role)) {
+    throw new functions.https.HttpsError('invalid-argument', 'uid y role (admin|vendedor) son requeridos');
+  }
+
+  try {
+    await admin.auth().setCustomUserClaims(uid, {
+      admin: role === 'admin',
+      vendedor: role === 'vendedor'
+    });
+    console.log(`✅ Rol de ${uid} actualizado a: ${role}`);
+    return { success: true, message: `Rol actualizado a ${role}` };
+  } catch (error: any) {
+    console.error('❌ Error actualizando rol:', error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
 // Importar y exportar funciones de WhatsApp
 import * as whatsapp from './whatsapp';
 export const getWhatsAppTemplates = whatsapp.getWhatsAppTemplates;

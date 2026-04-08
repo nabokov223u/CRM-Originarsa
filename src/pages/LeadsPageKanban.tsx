@@ -9,11 +9,14 @@ import { Input } from '../components/Input';
 import { Header } from '../components/HeaderNew';
 import { unifiedLeadsService } from '../services/unifiedLeads';
 import { leadsService } from '../services/firestore/leads';
+import { applicationsService } from '../services/firestore/applications';
 import { getActivitiesByLead, createNoteActivity } from '../services/firestore/activities';
 import { exportToCSV, exportToJSON, exportToExcel } from '../utils/export';
+import { useAuth } from '../hooks/useAuth';
 import { LayoutGrid, List, Search, Download, ChevronDown } from 'lucide-react';
 
 export const LeadsPageKanban: React.FC = () => {
+  const { user, isAdmin } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -30,8 +33,10 @@ export const LeadsPageKanban: React.FC = () => {
   const [editForm, setEditForm] = useState<Partial<Lead>>({});
   
   // Estado para agregar nota rápida
-  const [noteTitle, setNoteTitle] = useState('');
   const [noteDescription, setNoteDescription] = useState('');
+
+  // Estado para filtro de asesor (admin)
+  const [selectedAsesor, setSelectedAsesor] = useState<string>('todos');
 
   // Estado para crear nuevo lead
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -130,7 +135,6 @@ export const LeadsPageKanban: React.FC = () => {
     setSelectedLead(null);
     setIsEditing(false);
     setEditForm({});
-    setNoteTitle('');
     setNoteDescription('');
   };
 
@@ -169,12 +173,41 @@ export const LeadsPageKanban: React.FC = () => {
     }
   };
 
+  // Normalizar texto removiendo acentos para comparación
+  const normalize = (str: string) => str.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // Lista de asesores únicos para el filtro admin
+  const asesoresUnicos = useMemo(() => {
+    const set = new Set<string>();
+    leads.forEach(l => { if (l.asesor?.trim()) set.add(l.asesor.trim()); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+  }, [leads]);
+
+  // Filtrar leads por asesor (no-admin solo ve sus leads, admin puede filtrar)
+  const userLeads = useMemo(() => {
+    if (isAdmin) {
+      if (selectedAsesor === 'todos') return leads;
+      return leads.filter(lead => {
+        const asesor = (lead.asesor || '').trim();
+        return normalize(asesor) === normalize(selectedAsesor);
+      });
+    }
+    const name = user?.displayName?.trim();
+    if (!name) return [];
+    const normalizedName = normalize(name);
+    return leads.filter(lead => {
+      const asesor = (lead.asesor || '').trim();
+      if (!asesor) return false;
+      return normalize(asesor) === normalizedName;
+    });
+  }, [leads, isAdmin, user?.displayName, selectedAsesor]);
+
   // Filtrar leads por búsqueda
   const filteredLeads = useMemo(() => {
-    if (!searchQuery.trim()) return leads;
+    if (!searchQuery.trim()) return userLeads;
     const q = searchQuery.toLowerCase();
     const safe = (val: unknown) => (val != null ? String(val).toLowerCase() : '');
-    return leads.filter(lead => 
+    return userLeads.filter(lead => 
       safe(lead.fullName).includes(q) ||
       safe(lead.phone).includes(q) ||
       safe(lead.email).includes(q) ||
@@ -182,7 +215,7 @@ export const LeadsPageKanban: React.FC = () => {
       safe(lead.origen).includes(q) ||
       safe(lead.idNumber).includes(q)
     );
-  }, [leads, searchQuery]);
+  }, [userLeads, searchQuery]);
 
   // Exportar leads
   const handleExport = (format: 'csv' | 'json' | 'excel') => {
@@ -261,24 +294,35 @@ export const LeadsPageKanban: React.FC = () => {
 
   // Agregar nota rápida
   const handleAddNote = async () => {
-    if (!selectedLead || !noteTitle.trim()) {
-      alert('Por favor ingresa un título para la nota');
+    if (!selectedLead || !noteDescription.trim()) {
+      alert('Por favor ingresa una nota');
       return;
     }
+
+    const userName = user?.displayName || 'Usuario';
 
     try {
       await createNoteActivity(
         selectedLead.id,
-        noteTitle,
+        'Nota',
         noteDescription,
-        'Usuario Actual'
+        userName
       );
+
+      // Guardar última nota en el lead
+      const isCrediExpress = selectedLead.id.startsWith('crediexpress_');
+      if (isCrediExpress) {
+        const realId = selectedLead.id.replace('crediexpress_', '');
+        await applicationsService.updateFields(realId, { ultimaNota: noteDescription });
+      } else {
+        await leadsService.update(selectedLead.id, { ultimaNota: noteDescription });
+      }
+      setSelectedLead(prev => prev ? { ...prev, ultimaNota: noteDescription } : null);
 
       // Recargar actividades
       loadActivities(selectedLead.id);
       
       // Limpiar form
-      setNoteTitle('');
       setNoteDescription('');
       
       console.log('✅ Nota agregada correctamente');
@@ -309,6 +353,18 @@ export const LeadsPageKanban: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Banner de diagnóstico cuando el filtro no encuentra leads */}
+      {!isAdmin && leads.length > 0 && userLeads.length === 0 && (
+        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mx-6 mt-4 rounded">
+          <p className="text-amber-800 text-sm">
+            <strong>⚠️ No se encontraron leads asignados a tu cuenta.</strong><br />
+            Tu nombre en el sistema: <strong>"{user?.displayName || '(sin nombre)'}"</strong><br />
+            Tu email: <strong>{user?.email}</strong><br />
+            Hay {leads.length} leads totales. Contacta al administrador para verificar que tu nombre coincida con el campo "Asesor" de los leads.
+          </p>
+        </div>
+      )}
+
       {/* Header Estilo Bitrix24 */}
       <Header 
         title="Leads"
@@ -319,7 +375,20 @@ export const LeadsPageKanban: React.FC = () => {
       {/* Barra de búsqueda, exportar y vista */}
       <div className="bg-white border-b border-gray-200 px-6 py-3">
         <div className="flex items-center justify-between gap-4">
-          {/* Búsqueda */}
+          {/* Filtro asesor (admin) + Búsqueda */}
+          <div className="flex items-center gap-3 flex-1">
+          {isAdmin && (
+            <select
+              value={selectedAsesor}
+              onChange={(e) => setSelectedAsesor(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent min-w-[180px]"
+            >
+              <option value="todos">Todos los asesores</option>
+              {asesoresUnicos.map(a => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          )}
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -329,6 +398,7 @@ export const LeadsPageKanban: React.FC = () => {
               placeholder="Buscar por nombre, teléfono, asesor, origen..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
             />
+          </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -439,7 +509,7 @@ export const LeadsPageKanban: React.FC = () => {
               {/* WhatsApp */}
               {selectedLead.phone && (
                 <a
-                  href={`https://wa.me/${selectedLead.phone.replace(/\D/g, '')}`}
+                  href={`https://wa.me/${String(selectedLead.phone).replace(/\D/g, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors"
@@ -570,12 +640,16 @@ export const LeadsPageKanban: React.FC = () => {
                       onClick={async () => {
                         try {
                           const isCrediExpress = selectedLead.id.startsWith('crediexpress_');
-                          if (!isCrediExpress) {
+                          if (isCrediExpress) {
+                            const realId = selectedLead.id.replace('crediexpress_', '');
+                            await applicationsService.updateFields(realId, { etiqueta: tag });
+                          } else {
                             await leadsService.update(selectedLead.id, { etiqueta: tag });
                           }
                           setSelectedLead(prev => prev ? { ...prev, etiqueta: tag } : null);
                         } catch (error) {
                           console.error('Error actualizando etiqueta:', error);
+                          alert('Error al guardar la etiqueta');
                         }
                       }}
                       className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
@@ -592,12 +666,16 @@ export const LeadsPageKanban: React.FC = () => {
                       onClick={async () => {
                         try {
                           const isCrediExpress = selectedLead.id.startsWith('crediexpress_');
-                          if (!isCrediExpress) {
+                          if (isCrediExpress) {
+                            const realId = selectedLead.id.replace('crediexpress_', '');
+                            await applicationsService.updateFields(realId, { etiqueta: '' });
+                          } else {
                             await leadsService.update(selectedLead.id, { etiqueta: '' });
                           }
                           setSelectedLead(prev => prev ? { ...prev, etiqueta: undefined } : null);
                         } catch (error) {
                           console.error('Error quitando etiqueta:', error);
+                          alert('Error al quitar la etiqueta');
                         }
                       }}
                       className="px-3 py-1.5 rounded-full text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100"
@@ -613,20 +691,11 @@ export const LeadsPageKanban: React.FC = () => {
             <div className="border-t pt-4">
               <h3 className="font-semibold text-gray-900 mb-3">📝 Agregar Nota Rápida</h3>
               <div className="space-y-3">
-                <Input
-                  label="Título"
-                  value={noteTitle}
-                  onChange={setNoteTitle}
-                  placeholder="Ej: Llamada de seguimiento"
-                />
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descripción
-                  </label>
                   <textarea
                     value={noteDescription}
                     onChange={(e) => setNoteDescription(e.target.value)}
-                    placeholder="Detalles de la interacción..."
+                    placeholder="Escribe una nota sobre este lead..."
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />

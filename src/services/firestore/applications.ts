@@ -32,6 +32,13 @@ export interface Application {
   // Campos adicionales que puede tener CrediExpress
   score?: number;
   creditLimit?: number;
+  // Campos de origen y asesor
+  origen?: string;
+  asesor?: string;
+  concesionario?: string;
+  codigoSolicitud?: string;
+  etiqueta?: string;
+  ultimaNota?: string;
 }
 
 const COLLECTION_NAME = "applications";
@@ -52,8 +59,8 @@ export const applicationsService = {
           applicant: {
             fullName: data.applicant?.fullName || '',
             email: data.applicant?.email || '',
-            phone: data.applicant?.phone || '',
-            idNumber: data.applicant?.idNumber || '',
+            phone: String(data.applicant?.phone || ''),
+            idNumber: String(data.applicant?.idNumber || ''),
             maritalStatus: data.applicant?.maritalStatus || '',
             spouseId: data.applicant?.spouseId,
           },
@@ -68,6 +75,12 @@ export const applicationsService = {
           updatedAt: data.updatedAt,
           score: data.score,
           creditLimit: data.creditLimit,
+          origen: data.origen,
+          asesor: data.asesor,
+          concesionario: data.concesionario,
+          codigoSolicitud: data.codigoSolicitud,
+          etiqueta: data.etiqueta,
+          ultimaNota: data.ultimaNota,
         } as Application;
       });
     } catch (error) {
@@ -88,8 +101,8 @@ export const applicationsService = {
           applicant: {
             fullName: data.applicant?.fullName || '',
             email: data.applicant?.email || '',
-            phone: data.applicant?.phone || '',
-            idNumber: data.applicant?.idNumber || '',
+            phone: String(data.applicant?.phone || ''),
+            idNumber: String(data.applicant?.idNumber || ''),
             maritalStatus: data.applicant?.maritalStatus || '',
             spouseId: data.applicant?.spouseId,
           },
@@ -104,6 +117,12 @@ export const applicationsService = {
           updatedAt: data.updatedAt,
           score: data.score,
           creditLimit: data.creditLimit,
+          origen: data.origen,
+          asesor: data.asesor,
+          concesionario: data.concesionario,
+          codigoSolicitud: data.codigoSolicitud,
+          etiqueta: data.etiqueta,
+          ultimaNota: data.ultimaNota,
         } as Application;
       });
       
@@ -153,6 +172,21 @@ export const applicationsService = {
       console.log(`✅ Application ${id} actualizada a CRM status: ${crmStatus}`);
     } catch (error) {
       console.error("Error actualizando CRM status de application:", error);
+      throw error;
+    }
+  },
+
+  // Actualizar campos arbitrarios en la application (etiqueta, ultimaNota, etc.)
+  async updateFields(id: string, fields: Record<string, unknown>): Promise<void> {
+    try {
+      const docRef = doc(db, COLLECTION_NAME, id);
+      await updateDoc(docRef, {
+        ...fields,
+        updatedAt: new Date().toISOString(),
+      });
+      console.log(`✅ Application ${id} campos actualizados:`, Object.keys(fields));
+    } catch (error) {
+      console.error("Error actualizando campos de application:", error);
       throw error;
     }
   },

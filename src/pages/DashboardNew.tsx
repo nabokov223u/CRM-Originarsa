@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { StatCard } from '../components/StatCard';
 import { Card } from '../components/Card';
 import { Lead } from '../utils/types';
 import { unifiedLeadsService } from '../services/unifiedLeads';
+import { useAuth } from '../hooks/useAuth';
 
 interface DashboardProps {
   leads?: Lead[];
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) => {
-  const [leads, setLeads] = useState<Lead[]>(externalLeads || []);
+  const { user, isAdmin } = useAuth();
+  const [allLeads, setAllLeads] = useState<Lead[]>(externalLeads || []);
   const [loading, setLoading] = useState(!externalLeads);
+  const [selectedAsesor, setSelectedAsesor] = useState<string>('todos');
 
   // Cargar leads con suscripción en tiempo real si no vienen como prop
   useEffect(() => {
@@ -21,7 +24,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
       // Suscribirse a cambios en tiempo real
       const unsubscribe = unifiedLeadsService.subscribeToAllLeads((data) => {
         console.log('✅ Dashboard: Leads actualizados en tiempo real:', data.length);
-        setLeads(data);
+        setAllLeads(data);
         setLoading(false);
       });
 
@@ -31,9 +34,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
         unsubscribe();
       };
     } else {
-      setLeads(externalLeads);
+      setAllLeads(externalLeads);
     }
   }, [externalLeads]);
+
+  // Normalizar texto removiendo acentos para comparación
+  const normalize = (str: string) => str.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // Lista de asesores únicos para el filtro admin
+  const asesoresUnicos = useMemo(() => {
+    const set = new Set<string>();
+    allLeads.forEach(l => { if (l.asesor?.trim()) set.add(l.asesor.trim()); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+  }, [allLeads]);
+
+  // Filtrar leads por asesor (no-admin solo ve sus leads, admin puede filtrar)
+  const leads = useMemo(() => {
+    if (isAdmin) {
+      if (selectedAsesor === 'todos') return allLeads;
+      return allLeads.filter(lead => {
+        const asesor = (lead.asesor || '').trim();
+        return normalize(asesor) === normalize(selectedAsesor);
+      });
+    }
+    const name = user?.displayName?.trim();
+    if (!name) return [];
+    const normalizedName = normalize(name);
+    return allLeads.filter(lead => {
+      const asesor = (lead.asesor || '').trim();
+      if (!asesor) return false;
+      return normalize(asesor) === normalizedName;
+    });
+  }, [allLeads, isAdmin, user?.displayName, selectedAsesor]);
 
   // ===== CÁLCULO DE MÉTRICAS DEL PIPELINE =====
   
@@ -129,6 +161,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
 
   return (
     <div className="space-y-6">
+      {/* Filtro por asesor (solo admin) */}
+      {isAdmin && (
+        <div className="flex items-center gap-3 bg-white rounded-lg border border-gray-200 px-4 py-3">
+          <label className="text-sm font-medium text-gray-600 whitespace-nowrap">Filtrar por asesor:</label>
+          <select
+            value={selectedAsesor}
+            onChange={(e) => setSelectedAsesor(e.target.value)}
+            className="flex-1 max-w-xs px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="todos">Todos los asesores</option>
+            {asesoresUnicos.map(a => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+          {selectedAsesor !== 'todos' && (
+            <span className="text-xs text-gray-500">
+              {leads.length} leads de {allLeads.length}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* KPIs Principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard

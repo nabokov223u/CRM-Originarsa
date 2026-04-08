@@ -24,7 +24,6 @@ export function convertApplicationToLead(application: Application): Omit<Lead, '
 
   // Construir notas con información del crédito
   const notasArray = [];
-  notasArray.push(`🔥 LEAD DE CREDIEXPRESS`);
   if (application.loan.vehicleAmount) {
     notasArray.push(`💰 Monto vehículo: $${application.loan.vehicleAmount?.toLocaleString('es-CO')}`);
   }
@@ -52,7 +51,7 @@ export function convertApplicationToLead(application: Application): Omit<Lead, '
     // Campos del CRM - Estados del pipeline
     status: status,
     prioridad: 'Media', // Todos empiezan en Media, el asesor puede cambiarla después
-    fuente: 'CrediExpress',
+    fuente: application.origen || 'Aprobados no Facturados',
     fechaCreacion: fechaCreacion,
     fechaUltimoContacto: fechaCreacion,
     
@@ -67,9 +66,11 @@ export function convertApplicationToLead(application: Application): Omit<Lead, '
     observaciones: notasArray.join('\n'),
     asignadoA: undefined, // Sin asignar inicialmente
     
-    // Origen y asesor
-    origen: 'CrediExpress',
-    asesor: 'Telemarketing',
+    // Origen y asesor (usar valores de Firebase si existen)
+    origen: application.origen || 'CrediExpress',
+    asesor: application.asesor || 'Telemarketing',
+    etiqueta: application.etiqueta,
+    ultimaNota: application.ultimaNota,
     
     // Firebase
     createdAt: application.createdAt,
