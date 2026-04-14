@@ -42,6 +42,8 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
         return 'bg-green-100 text-green-800';
       case 'Seguimiento':
         return 'bg-yellow-100 text-yellow-800';
+      case 'Cita Agendada':
+        return 'bg-indigo-100 text-indigo-800';
       case 'Caido':
         return 'bg-red-100 text-red-800';
       case 'No Contactado':
@@ -53,8 +55,9 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
 
   const statusOptions: LeadStatus[] = [
     'Por Facturar',
-    'Facturado',
     'Seguimiento',
+    'Cita Agendada',
+    'Facturado',
     'Caido',
     'No Contactado',
   ];
@@ -76,47 +79,47 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
 
   if (leads.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-12 text-center">
-        <div className="text-6xl mb-4">📭</div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay leads</h3>
-        <p className="text-gray-600">Los leads aparecerán aquí cuando lleguen desde CrediExpress</p>
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
+        <div className="text-4xl mb-4">📭</div>
+        <h3 className="text-lg font-semibold text-primary mb-2">No hay leads</h3>
+        <p className="text-gray-400 text-sm">Los leads aparecerán aquí cuando lleguen desde CrediExpress</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-gray-100">
+          <thead className="bg-gray-50/80">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[180px]">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider max-w-[180px]">
                 Cliente
               </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[160px]">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider max-w-[160px]">
                 Contacto
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                 Monto
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                 Estado
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                 Etiqueta
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                 Asesor
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Fecha
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                Fecha Inicio
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                 Última Nota
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-50">
             {leads.map((lead) => (
               <tr
                 key={lead.id}
@@ -126,25 +129,25 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
                 <td className="px-3 py-4 whitespace-nowrap max-w-[180px]">
                   <div className="flex items-center">
                     <div className="truncate">
-                      <div className="text-sm font-medium text-gray-900 truncate">
+                      <div className="text-sm font-medium text-primary truncate">
                         {lead.fullName}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-xs text-gray-400">
                         {lead.idNumber}
                       </div>
                     </div>
                   </div>
                 </td>
                 <td className="px-3 py-4 whitespace-nowrap max-w-[160px]">
-                  <div className="text-sm text-gray-900 truncate">📱 {lead.phone}</div>
-                  <div className="text-sm text-gray-500 truncate">📧 {lead.email}</div>
+                  <div className="text-sm text-primary truncate">📱 {lead.phone}</div>
+                  <div className="text-xs text-gray-400 truncate">📧 {lead.email}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-bold text-green-600">
+                  <div className="text-sm font-bold text-secondary">
                     {formatCurrency(lead.vehicleAmount || 0)}
                   </div>
                   {lead.vehiculoInteres && (
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-400">
                       🚗 {lead.vehiculoInteres}
                     </div>
                   )}

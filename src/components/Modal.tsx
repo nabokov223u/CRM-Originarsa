@@ -20,10 +20,10 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
       ></div>
 
       {/* Modal */}
-      <div className="relative bg-white rounded-xl shadow-2xl transform transition-all w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white rounded-xl shadow-xl transform transition-all w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-100">
         <div className="bg-white px-6 pt-5 pb-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+            <h3 className="text-base font-semibold text-primary">{title}</h3>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors rounded-lg p-1 hover:bg-gray-100"
@@ -36,7 +36,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
           <div>{children}</div>
         </div>
         {footer && (
-          <div className="bg-gray-50 px-6 py-3 flex flex-row-reverse gap-2 border-t border-gray-200">
+          <div className="bg-gray-50 px-6 py-3 flex flex-row-reverse gap-2 border-t border-gray-100">
             {footer}
           </div>
         )}

@@ -115,12 +115,12 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   const columnStyle = getColumnStyle(color);
 
   return (
-    <div className="flex-shrink-0 w-80">
+    <div className="shrink-0 w-80">
       {/* Header de la columna */}
-      <div className={`${columnStyle.header} border-2 rounded-t-lg p-3`}>
+      <div className={`${columnStyle.header} border rounded-t-lg p-3`}>
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">{title}</h3>
-          <span className={`${columnStyle.badge} px-2 py-1 rounded-full text-sm font-bold`}>
+          <h3 className="font-medium text-sm text-primary">{title}</h3>
+          <span className={`${columnStyle.badge} px-2 py-0.5 rounded-full text-xs font-semibold`}>
             {count}
           </span>
         </div>
@@ -128,8 +128,8 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
 
       {/* Área de drop */}
       <div
-        className={`min-h-[500px] border-2 ${
-          isDraggingOver ? columnStyle.border : 'border-gray-200 bg-gray-50'
+        className={`min-h-[500px] border ${
+          isDraggingOver ? columnStyle.border : 'border-gray-100 bg-gray-50/50'
         } rounded-b-lg p-2 transition-colors`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -180,13 +180,18 @@ const KanbanCard: React.FC<KanbanCardProps> = ({
       draggable
       onDragStart={handleDragStart}
       onClick={onClick}
-      className="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow"
+      className="bg-white border border-gray-100 rounded-lg p-3 cursor-pointer hover:shadow-md transition-all"
     >
-      {/* Nombre y prioridad */}
+      {/* Nombre, cédula y prioridad */}
       <div className="flex items-start justify-between mb-2">
-        <h4 className="font-semibold text-gray-900 text-sm flex-1">
-          {lead.fullName}
-        </h4>
+        <div className="flex-1">
+          <h4 className="font-medium text-primary text-sm">
+            {lead.fullName}
+          </h4>
+          {(lead.idNumber || lead.cedula) && (
+            <p className="text-[11px] text-gray-400">CI: {lead.idNumber || lead.cedula}</p>
+          )}
+        </div>
         {lead.prioridad && (
           <span className={`text-xs px-2 py-0.5 rounded-full ml-2 ${getPriorityColor(lead.prioridad)}`}>
             {lead.prioridad}
@@ -195,12 +200,12 @@ const KanbanCard: React.FC<KanbanCardProps> = ({
       </div>
 
       {/* Monto */}
-      <div className="text-lg font-bold text-green-600 mb-2">
+      <div className="text-lg font-bold text-secondary mb-2">
         {formatCurrency(lead.vehicleAmount || 0)}
       </div>
 
       {/* Info adicional */}
-      <div className="space-y-1 text-xs text-gray-600">
+      <div className="space-y-1 text-xs text-gray-400">
         {lead.phone && (
           <div className="flex items-center">
             <span className="mr-1">📱</span>
@@ -225,15 +230,15 @@ const KanbanCard: React.FC<KanbanCardProps> = ({
 
       {/* Asesor */}
       {lead.asesor && (
-        <div className="flex items-center text-xs text-gray-600">
+        <div className="flex items-center text-xs text-gray-400">
           <span className="mr-1">👤</span>
           <span className="truncate">{lead.asesor}</span>
         </div>
       )}
 
       {/* Fuente y Origen */}
-      <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
-        <span className="inline-flex items-center text-xs text-gray-500">
+      <div className="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between">
+        <span className="inline-flex items-center text-xs text-gray-400">
           <span className="mr-1">📡</span>
           {lead.origen || lead.fuente}
         </span>

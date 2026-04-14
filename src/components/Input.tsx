@@ -41,8 +41,8 @@ export const Input: React.FC<InputProps> = ({
         required={required}
         disabled={disabled}
         minLength={minLength}
-        className={`w-full px-4 py-3 text-base border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0763fd] focus:border-transparent transition-all ${
-          error ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'
+        className={`w-full px-4 py-3 text-base border rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-all ${
+          error ? 'border-red-300 focus:ring-red-500' : 'border-gray-200'
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
       />
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}

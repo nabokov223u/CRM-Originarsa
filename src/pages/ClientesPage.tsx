@@ -1,41 +1,106 @@
-import React, { useState } from 'react';
-import { Cliente } from '../utils/types';
+import React, { useState, useMemo } from 'react';
+import { Lead } from '../utils/types';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { exportToCSV, exportToJSON, exportToExcel } from '../utils/export';
 
 interface ClientesPageProps {
-  clientes: Cliente[];
+  leads: Lead[];
 }
 
-export const ClientesPage: React.FC<ClientesPageProps> = ({ clientes }) => {
+export const ClientesPage: React.FC<ClientesPageProps> = ({ leads }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
-  const filteredClientes = clientes.filter(cliente =>
-    cliente.nombres.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cliente.apellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cliente.telefono.includes(searchTerm) ||
-    cliente.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Derivar clientes desde leads facturados
+  const clientes = useMemo(() => {
+    return leads
+      .filter(l => l.status === 'Facturado')
+      .map(l => ({
+        id: l.id,
+        fullName: l.fullName,
+        phone: l.phone,
+        email: l.email,
+        idNumber: l.idNumber || l.cedula || '',
+        vehicleAmount: l.montoFinal || l.vehicleAmount || 0,
+        vehiculoInteres: l.vehiculoInteres || '',
+        asesor: l.asesor || '',
+        fechaCreacion: l.fechaCreacion,
+        fechaCierre: l.fechaCierre || l.fechaCreacion,
+        origen: l.origen || l.fuente || '',
+      }));
+  }, [leads]);
+
+  // Filtro por fechas
+  const clientesFiltradosPorFecha = useMemo(() => {
+    return clientes.filter(c => {
+      const fecha = new Date(c.fechaCierre || c.fechaCreacion);
+      if (dateFrom && fecha < new Date(dateFrom)) return false;
+      if (dateTo) {
+        const to = new Date(dateTo);
+        to.setHours(23, 59, 59, 999);
+        if (fecha > to) return false;
+      }
+      return true;
+    });
+  }, [clientes, dateFrom, dateTo]);
+
+  // Filtro por búsqueda
+  const filteredClientes = useMemo(() => {
+    if (!searchTerm.trim()) return clientesFiltradosPorFecha;
+    const q = searchTerm.toLowerCase();
+    return clientesFiltradosPorFecha.filter(c =>
+      c.fullName.toLowerCase().includes(q) ||
+      c.phone.includes(q) ||
+      c.email.toLowerCase().includes(q) ||
+      c.idNumber.includes(q)
+    );
+  }, [clientesFiltradosPorFecha, searchTerm]);
+
+  const totalValor = filteredClientes.reduce((sum, c) => sum + c.vehicleAmount, 0);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-EC', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '-';
+    try {
+      return new Date(dateString).toLocaleDateString('es-EC', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return dateString;
+    }
+  };
 
   const handleExport = (format: 'csv' | 'json' | 'excel') => {
-    const dataToExport = filteredClientes.length > 0 ? filteredClientes : clientes;
+    const dataToExport = filteredClientes.map(c => ({
+      Nombre: c.fullName,
+      Cédula: c.idNumber,
+      Teléfono: c.phone,
+      Email: c.email,
+      Monto: c.vehicleAmount,
+      Vehículo: c.vehiculoInteres,
+      Asesor: c.asesor,
+      Origen: c.origen,
+      'Fecha Cierre': c.fechaCierre,
+    }));
     const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `clientes_originarsa_${timestamp}`;
+    const filename = `clientes_facturados_${timestamp}`;
     
-    switch (format) {
-      case 'csv':
-        exportToCSV(dataToExport, filename);
-        break;
-      case 'json':
-        exportToJSON(dataToExport, filename);
-        break;
-      case 'excel':
-        exportToExcel(dataToExport, filename);
-        break;
-    }
+    if (format === 'csv') exportToCSV(dataToExport as any, filename);
+    else if (format === 'json') exportToJSON(dataToExport as any, filename);
+    else exportToExcel(dataToExport as any, filename);
     
     setShowExportMenu(false);
   };
@@ -46,43 +111,71 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({ clientes }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <div className="text-center">
-            <div className="text-4xl mb-2">👥</div>
-            <div className="text-3xl font-bold text-gray-900">{clientes.length}</div>
-            <div className="text-gray-600 mt-1">Total Clientes</div>
+            <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center text-xl mx-auto mb-2">👥</div>
+            <div className="text-3xl font-bold text-primary">{filteredClientes.length}</div>
+            <div className="text-gray-400 text-sm mt-1">Clientes Facturados</div>
           </div>
         </Card>
         <Card>
           <div className="text-center">
-            <div className="text-4xl mb-2">🚗</div>
-            <div className="text-3xl font-bold text-gray-900">
-              {clientes.reduce((sum, c) => sum + c.vehiculosComprados, 0)}
+            <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center text-xl mx-auto mb-2">🚗</div>
+            <div className="text-3xl font-bold text-primary">
+              {filteredClientes.length}
             </div>
-            <div className="text-gray-600 mt-1">Vehículos Vendidos</div>
+            <div className="text-gray-400 text-sm mt-1">Vehículos Vendidos</div>
           </div>
         </Card>
         <Card>
           <div className="text-center">
-            <div className="text-4xl mb-2">💰</div>
-            <div className="text-3xl font-bold text-gray-900">
-              ${clientes.reduce((sum, c) => sum + c.valorTotal, 0).toLocaleString()}
+            <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center text-xl mx-auto mb-2">💰</div>
+            <div className="text-3xl font-bold text-secondary">
+              {formatCurrency(totalValor)}
             </div>
-            <div className="text-gray-600 mt-1">Valor Total</div>
+            <div className="text-gray-400 text-sm mt-1">Valor Total</div>
           </div>
         </Card>
       </div>
 
-      {/* Búsqueda */}
+      {/* Filtros: búsqueda + fechas + exportar */}
       <Card>
-        <div className="flex gap-3">
-          <div className="flex-1">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex-1 min-w-[200px]">
             <Input
-              placeholder="🔍 Buscar por nombre, teléfono o email..."
+              placeholder="🔍 Buscar por nombre, cédula, teléfono o email..."
               value={searchTerm}
               onChange={setSearchTerm}
             />
           </div>
           
-          {/* Botón de Exportar con menú dropdown */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-400 whitespace-nowrap">Desde</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-400 whitespace-nowrap">Hasta</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary"
+            />
+          </div>
+
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { setDateFrom(''); setDateTo(''); }}
+              className="text-xs text-secondary hover:underline whitespace-nowrap"
+            >
+              Limpiar fechas
+            </button>
+          )}
+          
+          {/* Exportar */}
           <div className="relative">
             <Button 
               variant="secondary" 
@@ -127,44 +220,50 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({ clientes }) => {
       <Card padding="none">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50/80 border-b border-gray-100">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contacto</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehículos</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Total</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Última Compra</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Cliente</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Contacto</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Monto</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Vehículo</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Asesor</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Fecha Cierre</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-50">
               {filteredClientes.length > 0 ? (
                 filteredClientes.map((cliente) => (
-                  <tr key={cliente.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={cliente.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-semibold text-gray-900">{cliente.nombres} {cliente.apellidos}</div>
-                      <div className="text-sm text-gray-500">CI: {cliente.cedula}</div>
+                      <div className="font-medium text-sm text-primary">{cliente.fullName}</div>
+                      <div className="text-xs text-gray-400">CI: {cliente.idNumber || '—'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{cliente.telefono}</div>
-                      <div className="text-sm text-gray-500">{cliente.email}</div>
+                      <div className="text-sm text-primary">{cliente.phone}</div>
+                      <div className="text-xs text-gray-400">{cliente.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-semibold text-blue-600">{cliente.vehiculosComprados}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-semibold text-green-600">
-                        ${cliente.valorTotal.toLocaleString()}
+                      <span className="text-sm font-semibold text-secondary">
+                        {formatCurrency(cliente.vehicleAmount)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {cliente.ultimaCompra ? new Date(cliente.ultimaCompra).toLocaleDateString('es-ES') : '-'}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {cliente.vehiculoInteres || '—'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {cliente.asesor || 'Sin asignar'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatDate(cliente.fechaCierre)}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                    No se encontraron clientes
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                    {clientes.length === 0 
+                      ? 'No hay leads facturados todavía' 
+                      : 'No se encontraron clientes con los filtros aplicados'}
                   </td>
                 </tr>
               )}

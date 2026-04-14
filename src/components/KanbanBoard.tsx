@@ -6,32 +6,41 @@ interface KanbanBoardProps {
   leads: Lead[];
   onLeadClick: (lead: Lead) => void;
   onStatusChange: (leadId: string, newStatus: LeadStatus) => void;
+  isTelemarketing?: boolean;
 }
 
-// Configuración de las columnas del Kanban
-const KANBAN_COLUMNS: Array<{
+// Configuración de las columnas del Kanban (orden nuevo)
+const ALL_KANBAN_COLUMNS: Array<{
   status: LeadStatus;
   title: string;
   color: string;
+  telemarketingOnly?: boolean;
 }> = [
   { status: 'Por Facturar', title: '📋 Por Facturar', color: 'primary' },
-  { status: 'Facturado', title: '✅ Facturado', color: 'green' },
   { status: 'Seguimiento', title: '🔄 Seguimiento', color: 'yellow' },
+  { status: 'Cita Agendada', title: '📅 Cita Agendada', color: 'indigo', telemarketingOnly: true },
+  { status: 'Facturado', title: '✅ Facturado', color: 'green' },
   { status: 'Caido', title: '❌ Caído', color: 'orange' },
-  { status: 'No Contactado', title: '📵 No Contactado', color: 'purple' },
 ];
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   leads,
   onLeadClick,
   onStatusChange,
+  isTelemarketing = false,
 }) => {
+  // Filtrar columnas según usuario
+  const KANBAN_COLUMNS = React.useMemo(() => {
+    return ALL_KANBAN_COLUMNS.filter(col => !col.telemarketingOnly || isTelemarketing);
+  }, [isTelemarketing]);
+
   // Agrupar leads por estado
   const leadsByStatus = React.useMemo(() => {
-    const grouped: Record<LeadStatus, Lead[]> = {
+    const grouped: Record<string, Lead[]> = {
       'Por Facturar': [],
-      'Facturado': [],
       'Seguimiento': [],
+      'Cita Agendada': [],
+      'Facturado': [],
       'Caido': [],
       'No Contactado': [],
     };
@@ -76,32 +85,32 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     <div className="space-y-4">
       {/* Estadísticas del Pipeline */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600">Total Leads</div>
-          <div className="text-2xl font-bold text-gray-900">{stats.totalLeads}</div>
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Total Leads</div>
+          <div className="text-2xl font-bold text-primary mt-1">{stats.totalLeads}</div>
         </div>
         
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600">Valor Pipeline</div>
-          <div className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalValue)}</div>
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Valor Pipeline</div>
+          <div className="text-2xl font-bold text-secondary mt-1">{formatCurrency(stats.totalValue)}</div>
         </div>
         
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600">Facturados</div>
-          <div className="text-2xl font-bold text-emerald-600">{stats.wonLeads}</div>
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Facturados</div>
+          <div className="text-2xl font-bold text-secondary mt-1">{stats.wonLeads}</div>
         </div>
         
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-600">Tasa Conversión</div>
-          <div className="text-2xl font-bold text-primary">{stats.conversionRate.toFixed(1)}%</div>
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Tasa Conversión</div>
+          <div className="text-2xl font-bold text-primary mt-1">{stats.conversionRate.toFixed(1)}%</div>
         </div>
       </div>
 
       {/* Tablero Kanban */}
-      <div className="bg-white rounded-lg shadow p-4">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Pipeline de Ventas</h2>
-          <div className="text-sm text-gray-500">
+          <h2 className="text-base font-semibold text-primary">Pipeline de Ventas</h2>
+          <div className="text-xs text-gray-400">
             Arrastra las tarjetas para cambiar de estado
           </div>
         </div>

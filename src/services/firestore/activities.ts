@@ -3,7 +3,6 @@ import {
   addDoc, 
   query, 
   where, 
-  orderBy, 
   getDocs,
   doc,
   updateDoc,
@@ -38,8 +37,7 @@ export const getActivitiesByLead = async (leadId: string): Promise<Actividad[]> 
   try {
     const q = query(
       collection(db, COLLECTION_NAME),
-      where('leadId', '==', leadId),
-      orderBy('fecha', 'desc')
+      where('leadId', '==', leadId)
     );
 
     const snapshot = await getDocs(q);
@@ -49,6 +47,9 @@ export const getActivitiesByLead = async (leadId: string): Promise<Actividad[]> 
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate?.() || new Date(),
     } as Actividad));
+
+    // Ordenar por fecha descendente en memoria (evita requerir índice compuesto)
+    activities.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
     return activities;
   } catch (error) {

@@ -52,25 +52,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   };
 
   return (
-    <div className={`fixed left-0 top-0 z-50 bg-primary/95 backdrop-blur-lg border-r border-white/10 h-screen transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'} flex flex-col shadow-2xl`}>
-      {/* Overlay de gradiente sutil para profundidad */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/20 pointer-events-none"></div>
-      
-      {/* Contenido con z-index superior */}
-      <div className="relative z-10 flex flex-col h-full">
-        {/* Header */}
-        <div className="h-16 px-4 border-b border-white/10 flex items-center justify-between">
+    <div className={`fixed left-0 top-0 z-50 bg-white border-r border-gray-200 h-screen transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-60'} flex flex-col`}>
+      {/* Contenido */}
+      <div className="flex flex-col h-full">
+        {/* Header con Logo */}
+        <div className="h-16 px-3 border-b border-gray-100 flex items-center justify-between">
           {!isCollapsed ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <img 
-                src="/Logos/Logo Blanco.png" 
+                src="/Logos/Logo 2.png" 
                 alt="Originarsa" 
-                className="w-8 h-8 object-contain"
+                className="h-8 object-contain"
               />
-              <div>
-                <h1 className="text-base font-bold text-white">CRM</h1>
-                <p className="text-xs text-secondary-hover/90">Originarsa</p>
-              </div>
             </div>
           ) : (
             <img 
@@ -81,14 +74,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1.5 hover:bg-white/10 rounded-md transition-colors text-slate-300 hover:text-white"
+            className="p-1.5 hover:bg-gray-100 rounded-md transition-colors text-gray-400 hover:text-primary"
           >
             {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
         </div>
 
         {/* Menu Items */}
-        <nav className="flex-1 px-3 py-4">
+        <nav className="flex-1 px-2 py-4">
           <ul className="space-y-1">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -98,14 +91,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
                 <li key={item.id}>
                   <button
                     onClick={() => onTabChange(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 font-medium text-sm ${
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium ${
                       isActive
-                        ? 'bg-slate-700 text-white'
-                        : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                        ? 'bg-secondary/10 text-secondary'
+                        : 'text-gray-500 hover:bg-gray-50 hover:text-primary'
                     }`}
                     title={isCollapsed ? item.label : ''}
                   >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-secondary' : ''}`} />
                     {!isCollapsed && (
                       <span className="flex-1 text-left">{item.label}</span>
                     )}
@@ -118,10 +111,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
 
         {/* Bottom Section */}
         {!isCollapsed && (
-          <div className="p-4 border-t border-slate-700 space-y-2">
+          <div className="px-3 pb-2 border-t border-gray-100 pt-2">
             <button 
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 text-sm"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all duration-200 text-sm"
             >
               <LogOut className="w-5 h-5" />
               <span>Cerrar Sesión</span>
@@ -130,19 +123,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
         )}
 
         {/* User Profile */}
-        <div className="p-3 border-t border-slate-700">
-          <div className={`flex items-center gap-3 p-2 rounded-lg hover:bg-slate-700 transition-colors cursor-pointer ${isCollapsed ? 'justify-center' : ''}`}>
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-lg">
+        <div className="p-3 border-t border-gray-100">
+          <div className={`flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${isCollapsed ? 'justify-center' : ''}`}>
+            <div className="w-8 h-8 bg-secondary/15 rounded-full flex items-center justify-center text-secondary text-xs font-semibold">
               {getUserInitials()}
             </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm text-white truncate">
+                <p className="font-medium text-sm text-primary truncate">
                   {user?.displayName || 'Usuario'}
                 </p>
-                <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+                <p className="text-xs text-gray-400 truncate">{user?.email}</p>
                 {isAdmin && (
-                  <span className="inline-block mt-1 px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded">
+                  <span className="inline-block mt-1 px-2 py-0.5 bg-secondary/10 text-secondary text-xs rounded font-medium">
                     Admin
                   </span>
                 )}

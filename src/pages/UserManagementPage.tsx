@@ -155,8 +155,8 @@ export function UserManagementPage() {
             <Users className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-primary">Equipo</h2>
-            <p className="text-sm text-slate-500">Gestiona los accesos y roles de tu equipo</p>
+            <h2 className="text-xl font-semibold text-primary">Equipo</h2>
+            <p className="text-sm text-gray-400">Gestiona los accesos y roles de tu equipo</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -273,11 +273,11 @@ export function UserManagementPage() {
       )}
 
       {/* Users Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-slate-800">Usuarios Activos</h3>
-            <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+            <h3 className="font-semibold text-primary text-sm">Usuarios Activos</h3>
+            <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
               {users.length}
             </span>
           </div>

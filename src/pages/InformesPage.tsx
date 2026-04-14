@@ -68,9 +68,9 @@ export const InformesPage: React.FC = () => {
           <div className="p-2 bg-primary/10 rounded-lg">
             <Database className="w-5 h-5 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-primary">Centro de Informes</h2>
+          <h2 className="text-xl font-semibold text-primary">Centro de Informes</h2>
         </div>
-        <p className="text-sm text-slate-500 mt-2 ml-[44px]">
+        <p className="text-sm text-gray-400 mt-2 ml-11">
           Selecciona un informe para generar reportes y auditorías sobre los datos del CRM.
         </p>
       </div>
@@ -87,8 +87,8 @@ export const InformesPage: React.FC = () => {
               disabled={!isActive}
               className={`group relative bg-white rounded-xl border text-left p-6 transition-all duration-200 ${
                 isActive
-                  ? 'border-slate-200 shadow-sm hover:shadow-md hover:border-secondary/40 cursor-pointer'
-                  : 'border-slate-100 opacity-60 cursor-not-allowed'
+                  ? 'border-gray-100 shadow-sm hover:shadow-md hover:border-secondary/40 cursor-pointer'
+                  : 'border-gray-50 opacity-60 cursor-not-allowed'
               }`}
             >
               <div className="flex items-start gap-4">

@@ -82,7 +82,7 @@ export const applicationsService = {
           etiqueta: data.etiqueta,
           ultimaNota: data.ultimaNota,
         } as Application;
-      }).filter((app) => app.status !== "denied" && app.status !== "rejected");
+      }).filter((app) => app.status !== "denied");
     } catch (error) {
       console.error("Error obteniendo applications:", error);
       return [];
@@ -124,7 +124,7 @@ export const applicationsService = {
           etiqueta: data.etiqueta,
           ultimaNota: data.ultimaNota,
         } as Application;
-      }).filter((app) => app.status !== "denied" && app.status !== "rejected");
+      }).filter((app) => app.status !== "denied");
       
       callback(applications);
     }, (error) => {

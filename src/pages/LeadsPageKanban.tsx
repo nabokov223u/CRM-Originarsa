@@ -304,7 +304,7 @@ export const LeadsPageKanban: React.FC = () => {
     try {
       await createNoteActivity(
         selectedLead.id,
-        'Nota',
+        `Nota de ${userName}`,
         noteDescription,
         userName
       );
@@ -373,7 +373,7 @@ export const LeadsPageKanban: React.FC = () => {
       />
 
       {/* Barra de búsqueda, exportar y vista */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3">
+      <div className="bg-white border-b border-gray-100 px-6 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Filtro asesor (admin) + Búsqueda */}
           <div className="flex items-center gap-3 flex-1">
@@ -381,7 +381,7 @@ export const LeadsPageKanban: React.FC = () => {
             <select
               value={selectedAsesor}
               onChange={(e) => setSelectedAsesor(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent min-w-[180px]"
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary min-w-[180px]"
             >
               <option value="todos">Todos los asesores</option>
               {asesoresUnicos.map(a => (
@@ -395,8 +395,8 @@ export const LeadsPageKanban: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por nombre, teléfono, asesor, origen..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+              placeholder="Buscar por nombre, cédula, teléfono, asesor, origen..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary text-sm"
             />
           </div>
           </div>
@@ -406,7 +406,7 @@ export const LeadsPageKanban: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => setShowExportMenu(!showExportMenu)}
-                className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-500 hover:bg-gray-50 transition-colors"
               >
                 <Download className="w-4 h-4" />
                 Exportar
@@ -415,14 +415,14 @@ export const LeadsPageKanban: React.FC = () => {
               {showExportMenu && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)} />
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                    <button onClick={() => handleExport('csv')} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20">
+                    <button onClick={() => handleExport('csv')} className="w-full text-left px-4 py-2 text-sm text-gray-500 hover:bg-gray-50">
                       📄 Exportar CSV
                     </button>
-                    <button onClick={() => handleExport('json')} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                    <button onClick={() => handleExport('json')} className="w-full text-left px-4 py-2 text-sm text-gray-500 hover:bg-gray-50">
                       🔧 Exportar JSON
                     </button>
-                    <button onClick={() => handleExport('excel')} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                    <button onClick={() => handleExport('excel')} className="w-full text-left px-4 py-2 text-sm text-gray-500 hover:bg-gray-50">
                       📊 Exportar Excel
                     </button>
                   </div>
@@ -431,13 +431,13 @@ export const LeadsPageKanban: React.FC = () => {
             </div>
 
             {/* Botones de vista */}
-            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+            <div className="flex gap-1 bg-gray-50 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('kanban')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors text-sm ${
                   viewMode === 'kanban'
-                    ? 'bg-white shadow-sm text-gray-900'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white shadow-sm text-primary'
+                    : 'text-gray-400 hover:text-primary'
                 }`}
               >
                 <LayoutGrid className="w-4 h-4" />
@@ -445,10 +445,10 @@ export const LeadsPageKanban: React.FC = () => {
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors text-sm ${
                   viewMode === 'list'
-                    ? 'bg-white shadow-sm text-gray-900'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white shadow-sm text-primary'
+                    : 'text-gray-400 hover:text-primary'
                 }`}
               >
                 <List className="w-4 h-4" />
@@ -460,13 +460,14 @@ export const LeadsPageKanban: React.FC = () => {
       </div>
 
       {/* Contenido */}
-      <div className="flex-1 overflow-auto bg-gray-50 p-6">
+      <div className="flex-1 overflow-auto bg-white p-6">
         {/* Vista Kanban */}
         {viewMode === 'kanban' && (
           <KanbanBoard
             leads={filteredLeads}
             onLeadClick={handleLeadClick}
             onStatusChange={handleStatusChange}
+            isTelemarketing={user?.displayName?.trim() === 'Telemarketing' || (isAdmin && selectedAsesor === 'Telemarketing')}
           />
         )}
 
@@ -565,20 +566,24 @@ export const LeadsPageKanban: React.FC = () => {
                     value={editForm.observaciones || ''}
                     onChange={(e) => setEditForm({...editForm, observaciones: e.target.value})}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary/30 focus:border-secondary text-sm"
                   />
                 </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Nombre Completo</label>
-                  <p className="text-gray-900">{selectedLead.fullName}</p>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Nombre Completo</label>
+                  <p className="text-primary text-sm mt-0.5">{selectedLead.fullName}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Estado</label>
-                  <p className="text-gray-900">
-                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Cédula</label>
+                  <p className="text-primary text-sm mt-0.5">{selectedLead.idNumber || selectedLead.cedula || '—'}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Estado</label>
+                  <p className="text-primary text-sm mt-0.5">
+                    <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs">
                       {selectedLead.status}
                     </span>
                     {selectedLead.etiqueta && (
@@ -589,37 +594,41 @@ export const LeadsPageKanban: React.FC = () => {
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Teléfono</label>
-                  <p className="text-gray-900">{selectedLead.phone}</p>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Fecha de Inicio</label>
+                  <p className="text-primary text-sm mt-0.5">📅 {selectedLead.fechaCreacion ? new Date(selectedLead.fechaCreacion).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Email</label>
-                  <p className="text-gray-900">{selectedLead.email}</p>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Teléfono</label>
+                  <p className="text-primary text-sm mt-0.5">{selectedLead.phone}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Monto Vehículo</label>
-                  <p className="text-green-600 font-bold">
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Email</label>
+                  <p className="text-primary text-sm mt-0.5">{selectedLead.email}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Monto Vehículo</label>
+                  <p className="text-secondary font-bold text-sm mt-0.5">
                     {formatCurrency(selectedLead.vehicleAmount || 0)}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Origen</label>
-                  <p className="text-gray-900">📡 {selectedLead.origen || 'Sin definir'}</p>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Origen</label>
+                  <p className="text-primary text-sm mt-0.5">📡 {selectedLead.origen || 'Sin definir'}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Asesor a Cargo</label>
-                  <p className="text-gray-900">👤 {selectedLead.asesor || 'Sin asignar'}</p>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Asesor a Cargo</label>
+                  <p className="text-primary text-sm mt-0.5">👤 {selectedLead.asesor || 'Sin asignar'}</p>
                 </div>
                 {selectedLead.vehiculoInteres && (
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Vehículo de Interés</label>
-                    <p className="text-gray-900">🚗 {selectedLead.vehiculoInteres}</p>
+                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Vehículo de Interés</label>
+                    <p className="text-primary text-sm mt-0.5">🚗 {selectedLead.vehiculoInteres}</p>
                   </div>
                 )}
                 {selectedLead.observaciones && (
                   <div className="col-span-2">
-                    <label className="text-sm font-medium text-gray-700">Observaciones</label>
-                    <p className="text-gray-700 text-sm whitespace-pre-line">{selectedLead.observaciones}</p>
+                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Observaciones</label>
+                    <p className="text-gray-500 text-sm mt-0.5 whitespace-pre-line">{selectedLead.observaciones}</p>
                   </div>
                 )}
               </div>
@@ -627,8 +636,8 @@ export const LeadsPageKanban: React.FC = () => {
 
             {/* Selector de etiqueta */}
             {ETIQUETAS_POR_ESTADO[selectedLead.status] && (
-              <div className="border-t pt-4">
-                <h3 className="font-semibold text-gray-900 mb-3">🏷️ Etiqueta</h3>
+              <div className="border-t border-gray-100 pt-4">
+                <h3 className="font-semibold text-primary text-sm mb-3">🏷️ Etiqueta</h3>
                 <div className="flex flex-wrap gap-2">
                   {ETIQUETAS_POR_ESTADO[selectedLead.status].map(tag => (
                     <button
@@ -684,8 +693,8 @@ export const LeadsPageKanban: React.FC = () => {
             )}
 
             {/* Agregar nota rápida */}
-            <div className="border-t pt-4">
-              <h3 className="font-semibold text-gray-900 mb-3">📝 Agregar Nota Rápida</h3>
+            <div className="border-t border-gray-100 pt-4">
+              <h3 className="font-semibold text-primary text-sm mb-3">📝 Agregar Nota Rápida</h3>
               <div className="space-y-3">
                 <div>
                   <textarea
@@ -693,7 +702,7 @@ export const LeadsPageKanban: React.FC = () => {
                     onChange={(e) => setNoteDescription(e.target.value)}
                     placeholder="Escribe una nota sobre este lead..."
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary/30 focus:border-secondary text-sm"
                   />
                 </div>
                 <Button onClick={handleAddNote} variant="primary">
@@ -779,8 +788,9 @@ export const LeadsPageKanban: React.FC = () => {
                 onChange={(e) => setCreateForm({...createForm, status: e.target.value as LeadStatus, etiqueta: ''})}
               >
                 <option value="Por Facturar">Por Facturar</option>
-                <option value="Facturado">Facturado</option>
                 <option value="Seguimiento">Seguimiento</option>
+                <option value="Cita Agendada">Cita Agendada</option>
+                <option value="Facturado">Facturado</option>
                 <option value="Caido">Caído</option>
                 <option value="No Contactado">No Contactado</option>
               </select>

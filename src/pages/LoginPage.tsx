@@ -49,32 +49,18 @@ export function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
-      {/* Screenshot del dashboard difuminado de fondo */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center"
-        style={{
-          backgroundImage: 'url(/dashboard_screen.png)',
-          filter: 'blur(8px) brightness(0.5)',
-          transform: 'scale(1.1)'
-        }}
-      ></div>
-
-      {/* Overlay oscuro adicional */}
-      <div className="absolute inset-0 bg-black/30"></div>
-
+    <div className="min-h-screen w-full bg-white flex items-center justify-center p-4">
       {/* Contenedor del login */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex">
+      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex">
           
           {/* Panel Izquierdo - Branding */}
           <div className="hidden md:flex md:w-2/5 bg-primary p-12 flex-col justify-between">
             <div>
               {/* Logo */}
               <img 
-                src="/Logos/Logo Blanco.png" 
+                src="/Logos/Logo 3.png" 
                 alt="Originarsa" 
-                className="h-12 mb-6"
+                className="h-24 mb-6"
               />
               
               {/* Línea decorativa */}
@@ -101,7 +87,7 @@ export function LoginPage() {
             {/* Header Mobile - Logo visible solo en móvil */}
             <div className="md:hidden mb-8 text-center">
               <img 
-                src="/Logos/Logo Negro.png" 
+                src="/Logos/Logo 3.png" 
                 alt="Originarsa" 
                 className="h-12 mx-auto mb-4"
               />
@@ -110,8 +96,8 @@ export function LoginPage() {
 
             {/* Título Desktop */}
             <div className="hidden md:block mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Iniciar sesión</h2>
-              <p className="text-gray-600">Ingresa a tu cuenta para continuar</p>
+              <h2 className="text-3xl font-bold text-primary mb-2">Iniciar sesión</h2>
+              <p className="text-gray-400">Ingresa a tu cuenta para continuar</p>
             </div>
 
             {/* Formulario */}
@@ -161,7 +147,7 @@ export function LoginPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#0763fd] hover:bg-[#0552d6] text-white font-semibold py-3.5 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 text-base"
+                className="w-full bg-secondary hover:bg-secondary-hover text-white font-semibold py-3.5 rounded-lg transition-all duration-200 text-base"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -178,7 +164,7 @@ export function LoginPage() {
             <div className="mt-8 text-center">
               <p className="text-sm text-gray-500">
                 ¿Problemas para acceder?{' '}
-                <button className="text-[#0763fd] hover:underline font-medium">
+                <button className="text-secondary hover:underline font-medium">
                   Contacta soporte
                 </button>
               </p>
@@ -186,6 +172,5 @@ export function LoginPage() {
           </div>
         </div>
       </div>
-    </div>
   );
 }

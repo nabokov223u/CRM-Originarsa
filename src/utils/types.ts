@@ -1,14 +1,16 @@
 // Estados del pipeline de ventas
 export type LeadStatus = 
   | "Por Facturar"     // Lead listo para facturar
-  | "Facturado"       // Factura emitida
   | "Seguimiento"     // En seguimiento activo
+  | "Cita Agendada"   // Cita agendada (solo Telemarketing)
+  | "Facturado"       // Factura emitida
   | "Caido"           // Lead perdido/caído
   | "No Contactado";  // No se ha logrado contactar
 
 // Etiquetas por estado del pipeline
 export const ETIQUETAS_POR_ESTADO: Record<string, string[]> = {
   'Seguimiento': ['Condiciones', 'Inventario'],
+  'Cita Agendada': ['Presencial', 'Virtual'],
   'Caido': ['Contado', 'Cotización', 'Competencia'],
   'No Contactado': ['Inubicable', 'Seguimiento'],
 };
