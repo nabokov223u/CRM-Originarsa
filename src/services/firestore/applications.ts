@@ -25,7 +25,7 @@ export interface Application {
     termMonths: number;
     vehicleAmount: number;
   };
-  status: "approved" | "rejected" | "pending";
+  status: "approved" | "rejected" | "pending" | "denied" | "review";
   crmStatus?: string; // Estado del CRM independiente (Nuevo, Contactado, etc.)
   createdAt: any;
   updatedAt: any;
@@ -82,7 +82,7 @@ export const applicationsService = {
           etiqueta: data.etiqueta,
           ultimaNota: data.ultimaNota,
         } as Application;
-      });
+      }).filter((app) => app.status !== "denied" && app.status !== "rejected");
     } catch (error) {
       console.error("Error obteniendo applications:", error);
       return [];
@@ -124,7 +124,7 @@ export const applicationsService = {
           etiqueta: data.etiqueta,
           ultimaNota: data.ultimaNota,
         } as Application;
-      });
+      }).filter((app) => app.status !== "denied" && app.status !== "rejected");
       
       callback(applications);
     }, (error) => {

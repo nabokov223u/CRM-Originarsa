@@ -7,6 +7,7 @@ import { Dashboard } from './DashboardNew';
 import { LeadsPageKanban } from './LeadsPageKanban';
 import { ClientesPage } from './ClientesPage';
 import { UserManagementPage } from './UserManagementPage';
+import { InformesPage } from './InformesPage';
 import { Button } from '../components/Button';
 import { Lead, Cliente } from '../utils/types';
 import { unifiedLeadsService } from '../services/unifiedLeads';
@@ -115,7 +116,10 @@ export function CrmMain() {
         <Route path="/leads" element={<LeadsPageKanban />} />
         <Route path="/clientes" element={<ClientesPage clientes={clientes} />} />
         
-        {/* Ruta solo para admins */}
+        {/* Rutas solo para admins */}
+        {isAdmin && (
+          <Route path="/informes" element={<InformesPage />} />
+        )}
         {isAdmin && (
           <Route path="/usuarios" element={<UserManagementPage />} />
         )}
@@ -131,6 +135,7 @@ export function CrmMain() {
       dashboard: { title: 'Dashboard', subtitle: 'Resumen general de tu CRM' },
       leads: { title: 'Gestión de Leads', subtitle: 'Administra tus prospectos de venta' },
       clientes: { title: 'Clientes', subtitle: 'Base de datos de clientes' },
+      informes: { title: 'Informes', subtitle: 'Reportes y auditorías de calidad' },
       usuarios: { title: 'Gestión de Usuarios', subtitle: 'Administra accesos al sistema' },
     };
     return titles[activeTab] || titles.dashboard;

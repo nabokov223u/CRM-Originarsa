@@ -603,10 +603,6 @@ export const LeadsPageKanban: React.FC = () => {
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Fuente</label>
-                  <p className="text-gray-900">🔥 {selectedLead.fuente}</p>
-                </div>
-                <div>
                   <label className="text-sm font-medium text-gray-700">Origen</label>
                   <p className="text-gray-900">📡 {selectedLead.origen || 'Sin definir'}</p>
                 </div>

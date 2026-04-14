@@ -6,7 +6,8 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  UserCog
+  UserCog,
+  FileBarChart
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -25,8 +26,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
     { id: 'clientes', label: 'Clientes', icon: Users },
   ];
 
-  // Agregar "Usuarios" solo si es admin
+  // Agregar opciones solo para admins
   if (isAdmin) {
+    menuItems.push({ id: 'informes', label: 'Informes', icon: FileBarChart } as any);
     menuItems.push({ id: 'usuarios', label: 'Usuarios', icon: UserCog } as any);
   }
 

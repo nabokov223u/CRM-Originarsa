@@ -51,7 +51,7 @@ export function convertApplicationToLead(application: Application): Omit<Lead, '
     // Campos del CRM - Estados del pipeline
     status: status,
     prioridad: 'Media', // Todos empiezan en Media, el asesor puede cambiarla después
-    fuente: application.origen || 'Aprobados no Facturados',
+    fuente: application.origen || 'CrediExpress',
     fechaCreacion: fechaCreacion,
     fechaUltimoContacto: fechaCreacion,
     
