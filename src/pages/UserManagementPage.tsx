@@ -182,7 +182,7 @@ export function UserManagementPage() {
       {(userMessage || message) && (
         <div className={`flex items-center gap-2 p-3.5 rounded-lg border text-sm ${
           (userMessage || message)!.type === 'success'
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+            ? 'bg-secondary-light border-secondary/20 text-secondary'
             : 'bg-red-50 border-red-200 text-red-700'
         }`}>
           {(userMessage || message)!.type === 'success' ? <Check className="w-4 h-4 shrink-0" /> : <X className="w-4 h-4 shrink-0" />}

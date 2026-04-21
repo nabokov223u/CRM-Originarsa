@@ -11,7 +11,7 @@ export default function StepFinal({ formData }: { formData: any }) {
       <h2 className="text-xl font-bold mb-4">Resumen final</h2>
       <button
         onClick={handleSubmit}
-        className="bg-blue-500 text-white px-6 py-2 rounded-xl hover:bg-blue-600"
+        className="bg-secondary text-white px-6 py-2 rounded-xl hover:bg-secondary-hover"
       >
         Enviar a CRM
       </button>

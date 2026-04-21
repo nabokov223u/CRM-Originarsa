@@ -3,6 +3,28 @@ import { applicationsService, type Application } from './firestore/applications'
 import { convertApplicationToLead } from '../utils/convertApplications';
 import type { Lead } from '../utils/types';
 
+// Deduplicar applications de CrediExpress por cédula (idNumber).
+// Cuando hay múltiples solicitudes con la misma cédula, se conserva la más reciente.
+function deduplicateApplications(apps: Application[]): Application[] {
+  const map = new Map<string, Application>();
+  for (const app of apps) {
+    const cedula = (app.applicant?.idNumber || '').trim();
+    if (!cedula) { map.set(app.id, app); continue; } // sin cédula → conservar
+    const existing = map.get(cedula);
+    if (!existing) {
+      map.set(cedula, app);
+    } else {
+      // Conservar la más reciente por createdAt
+      const existingTime = existing.createdAt?.toDate?.() ? existing.createdAt.toDate().getTime() : 0;
+      const currentTime = app.createdAt?.toDate?.() ? app.createdAt.toDate().getTime() : 0;
+      if (currentTime > existingTime) {
+        map.set(cedula, app);
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
 export const unifiedLeadsService = {
   // Obtener todos los leads (CRM + CrediExpress)
   async getAllLeads(): Promise<Lead[]> {
@@ -12,8 +34,9 @@ export const unifiedLeadsService = {
       console.log(`✅ ${crmLeads.length} leads del CRM cargados`);
 
       console.log('🔄 Cargando applications de CrediExpress...');
-      const applications = await applicationsService.getAll();
-      console.log(`✅ ${applications.length} applications de CrediExpress cargadas`);
+      const rawApplications = await applicationsService.getAll();
+      const applications = deduplicateApplications(rawApplications);
+      console.log(`✅ ${rawApplications.length} applications de CrediExpress (${applications.length} únicas por cédula)`);
 
       // Convertir applications a leads
       const crediexpressLeads: Lead[] = applications.map((app) => {
@@ -41,7 +64,8 @@ export const unifiedLeadsService = {
     let applications: Application[] = [];
 
     const updateCallback = () => {
-      const crediexpressLeads: Lead[] = applications.map((app) => {
+      const uniqueApps = deduplicateApplications(applications);
+      const crediexpressLeads: Lead[] = uniqueApps.map((app) => {
         const leadData = convertApplicationToLead(app);
         return {
           id: `crediexpress_${app.id}`,

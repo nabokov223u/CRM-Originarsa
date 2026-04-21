@@ -35,29 +35,29 @@ interface Strategy {
 // Configuración del Embudo por Fase
 const FUNNEL_STAGES: Record<string, { id: string, label: string, color: string, borderColor: string, textColor: string }[]> = {
   acquisition: [
-    { id: 'awareness', label: 'Conciencia (Awareness)', color: 'bg-[#0d234a]/5', borderColor: 'border-[#0d234a]/10', textColor: 'text-[#0d234a]' },
-    { id: 'consideration', label: 'Consideración', color: 'bg-[#0d234a]/10', borderColor: 'border-[#0d234a]/20', textColor: 'text-[#0d234a]' },
-    { id: 'decision', label: 'Decisión', color: 'bg-[#0d234a]/20', borderColor: 'border-[#0d234a]/30', textColor: 'text-[#0d234a]' },
-    { id: 'nutrition', label: 'Nutrición', color: 'bg-[#08BD8F]/10', borderColor: 'border-[#08BD8F]/30', textColor: 'text-[#00664d]' },
+    { id: 'awareness', label: 'Conciencia (Awareness)', color: 'bg-primary/5', borderColor: 'border-primary/10', textColor: 'text-primary' },
+    { id: 'consideration', label: 'Consideración', color: 'bg-primary/10', borderColor: 'border-primary/20', textColor: 'text-primary' },
+    { id: 'decision', label: 'Decisión', color: 'bg-primary/20', borderColor: 'border-primary/30', textColor: 'text-primary' },
+    { id: 'nutrition', label: 'Nutrición', color: 'bg-secondary/10', borderColor: 'border-secondary/30', textColor: 'text-secondary' },
   ],
   origination: [
-    { id: 'doc_collection', label: 'Recolección Documentos', color: 'bg-[#0d234a]/5', borderColor: 'border-[#0d234a]/10', textColor: 'text-[#0d234a]' },
-    { id: 'risk_analysis', label: 'Análisis de Riesgo', color: 'bg-[#0d234a]/10', borderColor: 'border-[#0d234a]/20', textColor: 'text-[#0d234a]' },
-    { id: 'approval', label: 'Aprobación', color: 'bg-[#0d234a]/20', borderColor: 'border-[#0d234a]/30', textColor: 'text-[#0d234a]' },
-    { id: 'disbursement', label: 'Desembolso / Entrega', color: 'bg-[#08BD8F]/20', borderColor: 'border-[#08BD8F]/40', textColor: 'text-[#00664d]' },
+    { id: 'doc_collection', label: 'Recolección Documentos', color: 'bg-primary/5', borderColor: 'border-primary/10', textColor: 'text-primary' },
+    { id: 'risk_analysis', label: 'Análisis de Riesgo', color: 'bg-primary/10', borderColor: 'border-primary/20', textColor: 'text-primary' },
+    { id: 'approval', label: 'Aprobación', color: 'bg-primary/20', borderColor: 'border-primary/30', textColor: 'text-primary' },
+    { id: 'disbursement', label: 'Desembolso / Entrega', color: 'bg-secondary/20', borderColor: 'border-secondary/40', textColor: 'text-secondary' },
   ],
   life: [
-    { id: 'onboarding', label: 'Onboarding / Bienvenida', color: 'bg-[#08BD8F]/10', borderColor: 'border-[#08BD8F]/20', textColor: 'text-[#00664d]' },
-    { id: 'maturation', label: 'Maduración (Pagos Regulares)', color: 'bg-[#0d234a]/10', borderColor: 'border-[#0d234a]/20', textColor: 'text-[#0d234a]' },
-    { id: 'loyalty', label: 'Fidelización', color: 'bg-[#0d234a]/20', borderColor: 'border-[#0d234a]/30', textColor: 'text-[#0d234a]' },
+    { id: 'onboarding', label: 'Onboarding / Bienvenida', color: 'bg-secondary/10', borderColor: 'border-secondary/20', textColor: 'text-secondary' },
+    { id: 'maturation', label: 'Maduración (Pagos Regulares)', color: 'bg-primary/10', borderColor: 'border-primary/20', textColor: 'text-primary' },
+    { id: 'loyalty', label: 'Fidelización', color: 'bg-primary/20', borderColor: 'border-primary/30', textColor: 'text-primary' },
   ],
   renewal: [
-    { id: 'detection', label: 'Detección Oportunidad', color: 'bg-[#0d234a]/5', borderColor: 'border-[#0d234a]/10', textColor: 'text-[#0d234a]' },
-    { id: 'offer', label: 'Presentación Oferta', color: 'bg-[#08BD8F]/10', borderColor: 'border-[#08BD8F]/20', textColor: 'text-[#00664d]' },
-    { id: 'negotiation', label: 'Negociación / Cierre', color: 'bg-[#08BD8F]/20', borderColor: 'border-[#08BD8F]/40', textColor: 'text-[#00664d]' },
+    { id: 'detection', label: 'Detección Oportunidad', color: 'bg-primary/5', borderColor: 'border-primary/10', textColor: 'text-primary' },
+    { id: 'offer', label: 'Presentación Oferta', color: 'bg-secondary/10', borderColor: 'border-secondary/20', textColor: 'text-secondary' },
+    { id: 'negotiation', label: 'Negociación / Cierre', color: 'bg-secondary/20', borderColor: 'border-secondary/40', textColor: 'text-secondary' },
   ],
   risk: [
-    { id: 'preventive', label: 'Preventiva (0 días)', color: 'bg-[#0d234a]/5', borderColor: 'border-[#0d234a]/10', textColor: 'text-[#0d234a]' },
+    { id: 'preventive', label: 'Preventiva (0 días)', color: 'bg-primary/5', borderColor: 'border-primary/10', textColor: 'text-primary' },
     { id: 'early_late', label: 'Mora Temprana (1-30)', color: 'bg-red-50', borderColor: 'border-red-200', textColor: 'text-red-800' }, // Mantener rojo para riesgo
     { id: 'late', label: 'Mora Tardía (31-90)', color: 'bg-red-100', borderColor: 'border-red-300', textColor: 'text-red-900' },
     { id: 'legal', label: 'Judicial / Castigo', color: 'bg-red-200', borderColor: 'border-red-400', textColor: 'text-red-950' },
@@ -127,9 +127,9 @@ export const MarketingPage = () => {
       title: 'Fase 2: Originación',
       subtitle: 'Conversión y Onboarding',
       icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      borderColor: 'border-blue-200',
+      color: 'text-primary',
+      bgColor: 'bg-primary-light',
+      borderColor: 'border-primary/20',
       description: 'Gestión documental, cierre de venta y entrega del vehículo. Inclusión del seguro como valor agregado.',
       strategies: [
         {
@@ -150,9 +150,9 @@ export const MarketingPage = () => {
       title: 'Fase 3: Vida del Crédito',
       subtitle: 'Maduración & Clasificación',
       icon: ShieldCheck,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-50',
-      borderColor: 'border-emerald-200',
+      color: 'text-secondary',
+      bgColor: 'bg-secondary-light',
+      borderColor: 'border-secondary/20',
       description: 'Monitoreo de comportamiento de pago y clasificación automática (Scoring Interno A, B, C).',
       strategies: [
         {
@@ -461,8 +461,8 @@ export const MarketingPage = () => {
                                onClick={() => handleOpenModal(strategy)}
                              >
                                 <div className="flex items-center gap-3">
-                                  {strategy.channel === 'whatsapp' ? <MessageCircle className="w-4 h-4 text-green-600" /> : 
-                                   strategy.channel === 'email' ? <Mail className="w-4 h-4 text-blue-600" /> : 
+                                  {strategy.channel === 'whatsapp' ? <MessageCircle className="w-4 h-4 text-secondary" /> : 
+                                   strategy.channel === 'email' ? <Mail className="w-4 h-4 text-primary" /> : 
                                    <Users className="w-4 h-4 text-gray-600" />}
                                   
                                   <div>
@@ -533,7 +533,7 @@ export const MarketingPage = () => {
                   selectedPhase.strategies.map((strategy) => (
                     <div key={strategy.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
                       <div className={`absolute top-0 left-0 w-1 h-full ${
-                        strategy.status === 'active' ? 'bg-green-500' : 
+                        strategy.status === 'active' ? 'bg-secondary' : 
                         strategy.status === 'paused' ? 'bg-yellow-500' : 'bg-gray-300'
                       }`}></div>
                       
@@ -543,7 +543,7 @@ export const MarketingPage = () => {
                             <h3 className="font-bold text-gray-900">{strategy.title}</h3>
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                               strategy.type === 'automated' ? 'bg-purple-100 text-purple-700' :
-                              strategy.type === 'manual' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                              strategy.type === 'manual' ? 'bg-primary-light text-primary' : 'bg-orange-100 text-orange-700'
                             }`}>
                               {strategy.type === 'automated' ? 'Automática' : strategy.type === 'manual' ? 'Manual' : 'Híbrida'}
                             </span>
@@ -564,8 +564,8 @@ export const MarketingPage = () => {
                             </div>
                             <div className="w-px h-3 bg-gray-300 hidden md:block"></div>
                             <div className="flex items-center gap-1.5">
-                              {strategy.channel === 'whatsapp' ? <MessageCircle className="w-3.5 h-3.5 text-green-600" /> : 
-                              strategy.channel === 'email' ? <Mail className="w-3.5 h-3.5 text-blue-600" /> : 
+                              {strategy.channel === 'whatsapp' ? <MessageCircle className="w-3.5 h-3.5 text-secondary" /> : 
+                              strategy.channel === 'email' ? <Mail className="w-3.5 h-3.5 text-primary" /> : 
                               <Users className="w-3.5 h-3.5 text-gray-600" />}
                               <span className="capitalize">{strategy.channel}</span>
                             </div>
@@ -664,8 +664,7 @@ export const MarketingPage = () => {
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1.5">Descripción</label>
             <textarea
-              className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              rows={2}
+              className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:outline-none"
               value={strategyForm.description || ''}
               onChange={(e) => setStrategyForm({...strategyForm, description: e.target.value})}
               placeholder="¿De qué trata esta estrategia?"
@@ -712,22 +711,22 @@ export const MarketingPage = () => {
           </div>
 
           {strategyForm.channel === 'whatsapp' && (
-            <div className="bg-green-50 p-3 rounded-lg border border-green-100 animate-in fade-in">
-              <label className="block text-xs font-bold text-green-800 mb-2 flex items-center gap-2">
+            <div className="bg-secondary-light p-3 rounded-lg border border-secondary/20 animate-in fade-in">
+              <label className="block text-xs font-bold text-secondary mb-2 flex items-center gap-2">
                 <MessageCircle className="w-3 h-3" />
                 Configuración WhatsApp Business API
               </label>
               
               <div className="space-y-3">
                 <div>
-                   <label className="block text-[10px] uppercase text-green-700 font-semibold mb-1">Plantilla Aprobada (Meta)</label>
-                   <select className="w-full px-3 py-1.5 text-xs border border-green-200 rounded bg-white">
+                   <label className="block text-[10px] uppercase text-secondary font-semibold mb-1">Plantilla Aprobada (Meta)</label>
+                   <select className="w-full px-3 py-1.5 text-xs border border-secondary/20 rounded bg-white">
                      <option value="">Seleccionar plantilla...</option>
                      <option value="bienvenida_cliente_v1">bienvenida_cliente_v1 (Marketing)</option>
                      <option value="recordatorio_pago_simple">recordatorio_pago_simple (Utility)</option>
                      <option value="oferta_renovacion_vip">oferta_renovacion_vip (Marketing)</option>
                    </select>
-                   <p className="text-[10px] text-green-600 mt-1">
+                   <p className="text-[10px] text-secondary mt-1">
                      * Requiere configuración de credenciales en Backend.
                    </p>
                 </div>
@@ -745,7 +744,7 @@ export const MarketingPage = () => {
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1.5">Script / Plantilla</label>
             <textarea
-              className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono"
+              className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:outline-none font-mono"
               rows={4}
               value={strategyForm.script || ''}
               onChange={(e) => setStrategyForm({...strategyForm, script: e.target.value})}
@@ -788,8 +787,8 @@ export const MarketingPage = () => {
                     </div>
                     <div className="w-px h-3 bg-gray-300 hidden md:block"></div>
                     <div className="flex items-center gap-1.5">
-                      {strategy.channel === 'whatsapp' ? <MessageCircle className="w-3.5 h-3.5 text-green-600" /> : 
-                       strategy.channel === 'email' ? <Mail className="w-3.5 h-3.5 text-blue-600" /> : 
+                      {strategy.channel === 'whatsapp' ? <MessageCircle className="w-3.5 h-3.5 text-secondary" /> : 
+                       strategy.channel === 'email' ? <Mail className="w-3.5 h-3.5 text-primary" /> : 
                        <Users className="w-3.5 h-3.5 text-gray-600" />}
                       <span className="capitalize">{strategy.channel}</span>
                     </div>

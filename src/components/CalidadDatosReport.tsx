@@ -28,7 +28,7 @@ const N8N_WEBHOOK_URL = 'https://n8n.originarsa.com/webhook/generar-reporte-cali
 
 function getStatusStyle(estado: string) {
   if (estado.includes('✅') || estado.includes('ARREGLÓ'))
-    return { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: CheckCircle2 };
+    return { bg: 'bg-secondary-light', text: 'text-secondary', border: 'border-secondary/20', icon: CheckCircle2 };
   if (estado.includes('🗑️') || estado.includes('❌') || estado.includes('BASURA'))
     return { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', icon: XCircle };
   if (estado.includes('⚠️') || estado.includes('ERROR') || estado.includes('INTACTO'))

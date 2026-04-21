@@ -37,9 +37,9 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
   const getStatusColor = (status: LeadStatus) => {
     switch (status) {
       case 'Por Facturar':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-primary/10 text-primary';
       case 'Facturado':
-        return 'bg-green-100 text-green-800';
+        return 'bg-secondary-light text-secondary';
       case 'Seguimiento':
         return 'bg-yellow-100 text-yellow-800';
       case 'Cita Agendada':
@@ -66,7 +66,7 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
     switch (etiqueta) {
       case 'Condiciones': return 'bg-amber-100 text-amber-800';
       case 'Inventario': return 'bg-indigo-100 text-indigo-800';
-      case 'Contado': return 'bg-emerald-100 text-emerald-800';
+      case 'Contado': return 'bg-secondary-light text-secondary';
       case 'Cotización': return 'bg-cyan-100 text-cyan-800';
       case 'Competencia': return 'bg-rose-100 text-rose-800';
       case 'Inubicable': return 'bg-gray-200 text-gray-700';
@@ -202,7 +202,7 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
                       {lead.ultimaNota.length > 60 && (
                         <button
                           onClick={() => setExpandedNotes(prev => ({ ...prev, [lead.id]: !prev[lead.id] }))}
-                          className="text-blue-600 hover:text-blue-800 text-xs mt-1 font-medium"
+                          className="text-secondary hover:text-secondary-hover text-xs mt-1 font-medium"
                         >
                           {expandedNotes[lead.id] ? 'Ver menos' : 'Ver más'}
                         </button>

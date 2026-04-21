@@ -1,9 +1,176 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StatCard } from '../components/StatCard';
-import { Card } from '../components/Card';
 import { Lead } from '../utils/types';
 import { unifiedLeadsService } from '../services/unifiedLeads';
+import { applicationsService, type Application } from '../services/firestore/applications';
 import { useAuth } from '../hooks/useAuth';
+import {
+  PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+} from 'recharts';
+import {
+  Users, Phone, TrendingUp, DollarSign, Target, Clock,
+  AlertTriangle, Tag, TrendingDown, UserX, Calendar,
+  ChevronRight, Filter, X, CheckCircle, XCircle, Hourglass,
+} from 'lucide-react';
+
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN TOKENS
+   ═══════════════════════════════════════════════════════════════ */
+const C = {
+  // Brand
+  brand:     '#0d234a',
+  brandMid:  '#1a3a6a',
+  brandLight:'#e8edf4',
+  brandBg:   '#f0f4f8',
+  mint:      '#08bd8f',
+  mintMid:   '#06a37b',
+  mintLight: '#e6f9f3',
+  mintBg:    '#edfaf6',
+  // Neutral
+  slate500:  '#64748b',
+  slate300:  '#cbd5e1',
+  slate100:  '#f1f5f9',
+  slate50:   '#f8fafc',
+  // Status accents (non-brand)
+  amber500:  '#f59e0b',
+  amber100:  '#fef3c7',
+  amber50:   '#fffbeb',
+  indigo500: '#6366f1',
+  indigo100: '#e0e7ff',
+  red500:    '#ef4444',
+  red100:    '#fee2e2',
+  red50:     '#fef2f2',
+  // Chart extras
+  violet500: '#8b5cf6',
+  sky500:    '#0ea5e9',
+  gray300:   '#d1d5db',
+  gray400:   '#9ca3af',
+  white:     '#ffffff',
+};
+
+const PIE_COLORS = [C.brand, C.mint, C.amber500, C.indigo500, C.red500, C.violet500, C.sky500, C.slate500];
+
+const STATUS_BG: Record<string, string> = {
+  'Por Facturar': 'bg-primary-light text-primary',
+  'Seguimiento': 'bg-amber-50 text-amber-700',
+  'Cita Agendada': 'bg-indigo-50 text-indigo-700',
+  'Facturado': 'bg-secondary-light text-secondary',
+  'Caido': 'bg-red-50 text-red-700',
+  'No Contactado': 'bg-gray-100 text-gray-600',
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   REUSABLE SUB-COMPONENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+// Section header with optional right content
+const SectionHeader: React.FC<{ title: string; subtitle?: string; right?: React.ReactNode }> = ({ title, subtitle, right }) => (
+  <div className="flex items-end justify-between mb-5">
+    <div>
+      <h2 className="text-lg font-semibold text-primary tracking-tight">{title}</h2>
+      {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+    </div>
+    {right}
+  </div>
+);
+
+// Hero KPI card with ring sparkline
+interface HeroCardProps {
+  icon: React.ReactNode;
+  iconBg: string;
+  label: string;
+  value: string | number;
+  percent?: number;
+  ringColor?: string;
+  change?: number;
+  changeLabel?: string;
+  sub?: string;
+}
+
+const HeroCard: React.FC<HeroCardProps> = ({ icon, iconBg, label, value, percent, ringColor, change, changeLabel, sub }) => {
+  const isPositive = change !== undefined && change >= 0;
+  const ringData = percent !== undefined ? [{ v: percent }, { v: Math.max(0, 100 - percent) }] : null;
+  return (
+    <div className="group bg-white rounded-2xl border border-slate-100 p-5 hover:shadow-lg hover:border-secondary/30 transition-all duration-300 cursor-default">
+      <div className="flex items-start justify-between">
+        <div className="flex-1 min-w-0">
+          <div className={`inline-flex items-center justify-center w-9 h-9 rounded-xl ${iconBg} mb-3`}>
+            {icon}
+          </div>
+          <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">{label}</p>
+          <p className="text-2xl font-bold text-primary mt-1 tracking-tight">{value}</p>
+          {change !== undefined && (
+            <div className="flex items-center mt-2 gap-1.5">
+              <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${isPositive ? 'bg-secondary-light text-secondary' : 'bg-red-50 text-red-600'}`}>
+                {isPositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                {Math.abs(change)}%
+              </span>
+              {changeLabel && <span className="text-[11px] text-slate-400">{changeLabel}</span>}
+            </div>
+          )}
+          {sub && <p className="text-[11px] text-slate-400 mt-1.5">{sub}</p>}
+        </div>
+        {ringData && ringColor && (
+          <div className="relative w-14 h-14 shrink-0 ml-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={ringData} cx="50%" cy="50%" innerRadius={20} outerRadius={27} startAngle={90} endAngle={-270} dataKey="v" strokeWidth={0}>
+                  <Cell fill={ringColor} />
+                  <Cell fill={C.slate100} />
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-[9px] font-bold" style={{ color: ringColor }}>{percent}%</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Alert badge
+const AlertBadge: React.FC<{ icon: React.ReactNode; label: string; value: number; color: string; bgColor: string; desc: string; href?: string }> = ({ icon, label, value, color, bgColor, desc, href }) => (
+  <div className={`flex items-center gap-4 ${bgColor} rounded-2xl p-5 border border-transparent hover:shadow-md transition-all duration-300`}>
+    <div className={`w-12 h-12 rounded-xl ${color} bg-white/80 flex items-center justify-center shadow-sm`}>
+      {icon}
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-[11px] font-medium uppercase tracking-wider opacity-70">{label}</p>
+      <p className="text-2xl font-bold mt-0.5">{value}</p>
+      <p className="text-[11px] opacity-60 mt-0.5">{desc}</p>
+    </div>
+    {href && (
+      <a href={href} className="w-8 h-8 rounded-lg bg-white/50 hover:bg-white flex items-center justify-center transition-colors">
+        <ChevronRight size={16} />
+      </a>
+    )}
+  </div>
+);
+
+// Custom Recharts tooltip
+const ChartTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-primary text-white rounded-lg shadow-xl px-3 py-2 text-xs border border-primary">
+      {label && <p className="font-medium text-slate-300 mb-1 text-[10px] uppercase">{label}</p>}
+      {payload.map((p: any, i: number) => (
+        <p key={i} className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full inline-block" style={{ background: p.color || p.fill }} />
+          {p.name}: <strong className="text-white">{p.value}</strong>
+        </p>
+      ))}
+    </div>
+  );
+};
+
+const renderPieLabel = ({ name, percent }: any) =>
+  percent > 0.06 ? `${name} ${(percent * 100).toFixed(0)}%` : '';
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN DASHBOARD
+   ═══════════════════════════════════════════════════════════════ */
 
 interface DashboardProps {
   leads?: Lead[];
@@ -13,80 +180,65 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
   const { user, isAdmin } = useAuth();
   const [allLeads, setAllLeads] = useState<Lead[]>(externalLeads || []);
   const [loading, setLoading] = useState(!externalLeads);
+  const [rawApplications, setRawApplications] = useState<Application[]>([]);
   const [selectedAsesor, setSelectedAsesor] = useState<string>('todos');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [diasTendencia, setDiasTendencia] = useState(30);
 
-  // Cargar leads con suscripción en tiempo real si no vienen como prop
   useEffect(() => {
     if (!externalLeads) {
       setLoading(true);
-      console.log('🔄 Dashboard: Suscribiéndose a cambios en tiempo real...');
-      
-      // Suscribirse a cambios en tiempo real
       const unsubscribe = unifiedLeadsService.subscribeToAllLeads((data) => {
-        console.log('✅ Dashboard: Leads actualizados en tiempo real:', data.length);
         setAllLeads(data);
         setLoading(false);
       });
-
-      // Cleanup: cancelar suscripción al desmontar
-      return () => {
-        console.log('🔌 Dashboard: Desconectando suscripción en tiempo real');
-        unsubscribe();
-      };
+      return () => { unsubscribe(); };
     } else {
       setAllLeads(externalLeads);
     }
   }, [externalLeads]);
 
-  // Normalizar texto removiendo acentos para comparación
+  useEffect(() => {
+    const unsubscribe = applicationsService.subscribeToAllRaw((apps) => {
+      setRawApplications(apps);
+    });
+    return () => { unsubscribe(); };
+  }, []);
+
   const normalize = (str: string) => str.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-  // Lista de asesores únicos para el filtro admin
   const asesoresUnicos = useMemo(() => {
     const set = new Set<string>();
     allLeads.forEach(l => { if (l.asesor?.trim()) set.add(l.asesor.trim()); });
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
   }, [allLeads]);
 
-  // Filtrar leads por asesor (no-admin solo ve sus leads, admin puede filtrar)
   const leads = useMemo(() => {
     if (isAdmin) {
       if (selectedAsesor === 'todos') return allLeads;
-      return allLeads.filter(lead => {
-        const asesor = (lead.asesor || '').trim();
-        return normalize(asesor) === normalize(selectedAsesor);
-      });
+      return allLeads.filter(lead => normalize((lead.asesor || '').trim()) === normalize(selectedAsesor));
     }
     const name = user?.displayName?.trim();
     if (!name) return [];
-    const normalizedName = normalize(name);
+    const nn = normalize(name);
     return allLeads.filter(lead => {
-      const asesor = (lead.asesor || '').trim();
-      if (!asesor) return false;
-      return normalize(asesor) === normalizedName;
+      const a = (lead.asesor || '').trim();
+      return a && normalize(a) === nn;
     });
   }, [allLeads, isAdmin, user?.displayName, selectedAsesor]);
 
-  // Filtrar por fechas
   const leadsFiltered = useMemo(() => {
     if (!dateFrom && !dateTo) return leads;
     return leads.filter(l => {
-      const fecha = new Date(l.fechaCreacion);
-      if (dateFrom && fecha < new Date(dateFrom)) return false;
-      if (dateTo) {
-        const to = new Date(dateTo);
-        to.setHours(23, 59, 59, 999);
-        if (fecha > to) return false;
-      }
+      const f = new Date(l.fechaCreacion);
+      if (dateFrom && f < new Date(dateFrom)) return false;
+      if (dateTo) { const t = new Date(dateTo); t.setHours(23, 59, 59, 999); if (f > t) return false; }
       return true;
     });
   }, [leads, dateFrom, dateTo]);
 
-  // ===== CÁLCULO DE MÉTRICAS DEL PIPELINE =====
-  
-  // Leads por estado
+  /* ── Metrics ── */
   const leadsPorEstado = {
     porFacturar: leadsFiltered.filter(l => l.status === 'Por Facturar').length,
     seguimiento: leadsFiltered.filter(l => l.status === 'Seguimiento').length,
@@ -96,317 +248,611 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
     noContactado: leadsFiltered.filter(l => l.status === 'No Contactado').length,
   };
 
-  // Total de leads activos (excluye caídos)
-  const leadsActivos = leadsFiltered.filter(l => 
-    !['Caido'].includes(l.status)
-  ).length;
+  const leadsActivos = leadsFiltered.filter(l => l.status !== 'Caido').length;
 
-  // Tasa de contactabilidad: (Facturado + Seguimiento) / Total
-  const leadsContactados = leadsFiltered.filter(l => 
-    ['Facturado', 'Seguimiento'].includes(l.status)
-  ).length;
-  const tasaContactabilidad = leadsFiltered.length > 0 
-    ? Math.round((leadsContactados / leadsFiltered.length) * 100) 
-    : 0;
+  const tasaContactabilidad = leadsFiltered.length > 0
+    ? Math.round((leadsFiltered.filter(l => ['Facturado', 'Seguimiento', 'Cita Agendada', 'Por Facturar'].includes(l.status) && l.etiqueta !== 'Sin Respuesta').length / leadsFiltered.length) * 100) : 0;
 
-  // Tasa de conversión: Facturados / Total
-  const tasaConversion = leadsFiltered.length > 0 
-    ? Math.round((leadsPorEstado.facturado / leadsFiltered.length) * 100) 
-    : 0;
+  const tasaConversion = leadsFiltered.length > 0
+    ? Math.round((leadsPorEstado.facturado / leadsFiltered.length) * 100) : 0;
 
-  // Valor total del pipeline (solo leads activos)
-  const valorPipeline = leadsFiltered
-    .filter(l => !['Caido'].includes(l.status))
-    .reduce((sum, lead) => sum + (lead.vehicleAmount || 0), 0);
+  const valorPipeline = leadsFiltered.filter(l => l.status !== 'Caido').reduce((s, l) => s + (l.vehicleAmount || 0), 0);
+  const valorGanados = leadsFiltered.filter(l => l.status === 'Facturado').reduce((s, l) => s + (l.montoFinal || l.vehicleAmount || 0), 0);
+  const leadsUrgentes = leadsFiltered.filter(l => l.status === 'Por Facturar' && l.prioridad === 'Alta').length;
 
-  // Valor de negocios facturados
-  const valorGanados = leadsFiltered
-    .filter(l => l.status === 'Facturado')
-    .reduce((sum, lead) => sum + (lead.montoFinal || lead.vehicleAmount || 0), 0);
+  const ticketPromedio = leadsActivos > 0 ? Math.round(valorPipeline / leadsActivos) : 0;
+  const tiempoPromedioCierre = useMemo(() => {
+    const f = leadsFiltered.filter(l => l.status === 'Facturado' && l.fechaCierre && l.fechaCreacion);
+    if (!f.length) return null;
+    return Math.round(f.reduce((s, l) => s + Math.max(0, Math.ceil((new Date(l.fechaCierre!).getTime() - new Date(l.fechaCreacion).getTime()) / 86400000)), 0) / f.length);
+  }, [leadsFiltered]);
 
-  // Leads urgentes (Por Facturar de alta prioridad)
-  const leadsUrgentes = leadsFiltered.filter(l => 
-    l.status === 'Por Facturar' && l.prioridad === 'Alta'
-  ).length;
+  const tasaCaida = leadsFiltered.length > 0 ? Math.round((leadsPorEstado.caido / leadsFiltered.length) * 100) : 0;
 
-  // Leads de CrediExpress esta semana
-  const haceUnaSemana = new Date();
-  haceUnaSemana.setDate(haceUnaSemana.getDate() - 7);
-  const leadsCrediExpressRecientes = leadsFiltered.filter(l => {
-    if (l.fuente !== 'CrediExpress') return false;
-    const fechaCreacion = new Date(l.fechaCreacion);
-    return fechaCreacion >= haceUnaSemana;
+  /* ── Approval rate metrics (only Crediexpress: sin origen o origen = 'CrediExpress') ── */
+  const approvalStats = useMemo(() => {
+    // Las solicitudes de Crediexpress: sin origen O con origen explícito 'CrediExpress'
+    // (misma lógica que convertApplicationToLead: fuente = application.origen || 'CrediExpress')
+    const crediexpress = rawApplications.filter(a => {
+      const o = (a.origen || '').trim().toLowerCase();
+      return o === '' || o === 'crediexpress';
+    });
+    const total = crediexpress.length;
+    const aprobados = crediexpress.filter(a => a.status === 'approved').length;
+    const rechazados = crediexpress.filter(a => a.status === 'rejected' || a.status === 'denied').length;
+    const pendientes = crediexpress.filter(a => a.status === 'pending' || a.status === 'review').length;
+    const tasaAprobacion = total > 0 ? Math.round((aprobados / total) * 100) : 0;
+    return { total, aprobados, rechazados, pendientes, tasaAprobacion };
+  }, [rawApplications]);
+
+  const cutoff7 = new Date(); cutoff7.setDate(cutoff7.getDate() - 7);
+  const leadsOlvidados = leadsFiltered.filter(l => {
+    if (['Facturado', 'Caido'].includes(l.status)) return false;
+    if (!l.fechaUltimoContacto) return true;
+    return new Date(l.fechaUltimoContacto) < cutoff7;
   }).length;
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-EC', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Por Facturar': return 'text-primary';
-      case 'Facturado': return 'text-emerald-600';
-      case 'Seguimiento': return 'text-yellow-600';
-      case 'Caido': return 'text-red-600';
-      case 'No Contactado': return 'text-purple-600';
-      default: return 'text-gray-600';
+  /* ── Period comparison ── */
+  const periodComparison = useMemo(() => {
+    const now = new Date();
+    if (dateFrom || dateTo) {
+      const from = dateFrom ? new Date(dateFrom) : new Date(Math.min(...leads.map(l => new Date(l.fechaCreacion).getTime())));
+      const to = dateTo ? new Date(dateTo) : now; to.setHours(23, 59, 59, 999);
+      const days = Math.max(1, Math.ceil((to.getTime() - from.getTime()) / 86400000));
+      const pf = new Date(from); pf.setDate(pf.getDate() - days);
+      const pt = new Date(from); pt.setDate(pt.getDate() - 1); pt.setHours(23, 59, 59, 999);
+      return leads.filter(l => { const d = new Date(l.fechaCreacion); return d >= pf && d <= pt; });
     }
+    const ms = new Date(now.getFullYear(), now.getMonth(), 1);
+    const ps = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const pe = new Date(ms); pe.setDate(pe.getDate() - 1); pe.setHours(23, 59, 59, 999);
+    return leads.filter(l => { const d = new Date(l.fechaCreacion); return d >= ps && d <= pe; });
+  }, [leads, dateFrom, dateTo]);
+
+  const calcChange = (cur: number, prev: number): number | undefined => {
+    if (!prev && !cur) return undefined;
+    if (!prev) return cur > 0 ? 100 : undefined;
+    return Math.round(((cur - prev) / prev) * 100);
   };
+  const prevTotal = periodComparison.length;
+  const prevContactados = periodComparison.filter(l => ['Facturado', 'Seguimiento', 'Cita Agendada', 'Por Facturar'].includes(l.status) && l.etiqueta !== 'Sin Respuesta').length;
+  const prevTasaContactabilidad = prevTotal > 0 ? Math.round((prevContactados / prevTotal) * 100) : 0;
+  const prevFacturados = periodComparison.filter(l => l.status === 'Facturado').length;
+  const prevTasaConversion = prevTotal > 0 ? Math.round((prevFacturados / prevTotal) * 100) : 0;
 
-  // Leads recientes
-  const leadsRecientes = [...leadsFiltered]
-    .sort((a, b) => {
-      const dateA = new Date(a.fechaCreacion).getTime();
-      const dateB = new Date(b.fechaCreacion).getTime();
-      return dateB - dateA;
-    })
-    .slice(0, 4);
+  const changeTotal = calcChange(leadsFiltered.length, prevTotal);
+  const changeContactabilidad = calcChange(tasaContactabilidad, prevTasaContactabilidad);
+  const changeConversion = calcChange(tasaConversion, prevTasaConversion);
 
+  /* ── Chart Data ── */
+  const dataFuente = useMemo(() => {
+    const c: Record<string, number> = {};
+    leadsFiltered.forEach(l => { const f = l.fuente || 'Otro'; c[f] = (c[f] || 0) + 1; });
+    return Object.entries(c).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+  }, [leadsFiltered]);
+
+  const dataTendenciaDiaria = useMemo(() => {
+    const hoy = new Date(); hoy.setHours(23, 59, 59, 999);
+    const inicio = new Date(); inicio.setDate(inicio.getDate() - diasTendencia + 1); inicio.setHours(0, 0, 0, 0);
+    const days: { name: string; date: string; CrediExpress: number; 'Aprobados en Vivo': number; Otros: number }[] = [];
+    const cur = new Date(inicio);
+    while (cur <= hoy) {
+      days.push({ name: `${String(cur.getDate()).padStart(2, '0')}/${String(cur.getMonth() + 1).padStart(2, '0')}`, date: cur.toISOString().split('T')[0], CrediExpress: 0, 'Aprobados en Vivo': 0, Otros: 0 });
+      cur.setDate(cur.getDate() + 1);
+    }
+    leads.forEach(l => {
+      const fe = (l.fechaCreacion || '').substring(0, 10);
+      const d = days.find(x => x.date === fe);
+      if (!d) return;
+      const src = l.fuente || '';
+      if (src === 'CrediExpress') d.CrediExpress++;
+      else if (src === 'Aprobados en Vivo' || src === 'Aprobados no Facturados') d['Aprobados en Vivo']++;
+      else d.Otros++;
+    });
+    return days;
+  }, [leads, diasTendencia]);
+
+  const dataAsesor = useMemo(() => {
+    if (!isAdmin) return [];
+    const m: Record<string, Record<string, number>> = {};
+    leadsFiltered.forEach(l => {
+      const a = (l.asesor || 'Sin asignar').trim();
+      if (!m[a]) m[a] = {};
+      m[a][l.status] = (m[a][l.status] || 0) + 1;
+    });
+    return Object.entries(m).map(([name, st]) => ({
+      name: name.length > 18 ? name.slice(0, 18) + '…' : name,
+      Facturado: st['Facturado'] || 0, Seguimiento: st['Seguimiento'] || 0,
+      'Por Facturar': st['Por Facturar'] || 0, Caido: st['Caido'] || 0,
+      total: Object.values(st).reduce((s, v) => s + v, 0),
+    })).sort((a, b) => b.total - a.total);
+  }, [leadsFiltered, isAdmin]);
+
+  const dataMotivoPerdida = useMemo(() => {
+    const c: Record<string, number> = {};
+    leadsFiltered.filter(l => l.status === 'Caido').forEach(l => {
+      const m = l.motivoPerdida || l.etiqueta || 'Sin especificar';
+      c[m] = (c[m] || 0) + 1;
+    });
+    return Object.entries(c).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+  }, [leadsFiltered]);
+
+  const leadsRecientes = useMemo(() =>
+    [...leadsFiltered].sort((a, b) => new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime()).slice(0, 5),
+  [leadsFiltered]);
+
+  const fmt = (n: number) => new Intl.NumberFormat('es-EC', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
+
+  /* ── Loading ── */
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-secondary border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-400 text-sm">Cargando dashboard...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-secondary border-t-transparent mx-auto mb-3" />
+          <p className="text-slate-400 text-sm">Cargando dashboard...</p>
         </div>
       </div>
     );
   }
 
+  /* ═══════════════════════════════════════════════════════════
+     RENDER
+     ═══════════════════════════════════════════════════════════ */
   return (
-    <div className="space-y-6">
-      {/* Filtro por asesor (solo admin) */}
-      {isAdmin && (
-        <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
-          <label className="text-sm font-medium text-gray-500 whitespace-nowrap">Filtrar por asesor:</label>
-          <select
-            value={selectedAsesor}
-            onChange={(e) => setSelectedAsesor(e.target.value)}
-            className="flex-1 max-w-xs px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary"
-          >
-            <option value="todos">Todos los asesores</option>
-            {asesoresUnicos.map(a => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
-          {selectedAsesor !== 'todos' && (
-            <span className="text-xs text-gray-400">
-              {leadsFiltered.length} leads de {allLeads.length}
-            </span>
+    <div className="space-y-8 pb-8">
+
+      {/* ─── Global Filters Bar ─── */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Asesor filter (admin) */}
+        {isAdmin && (
+          <div className="flex items-center gap-2 bg-white rounded-xl border border-slate-200 px-3 py-2 shadow-sm">
+            <Filter size={14} className="text-slate-400" />
+            <select
+              value={selectedAsesor}
+              onChange={(e) => setSelectedAsesor(e.target.value)}
+              className="text-sm bg-transparent border-none outline-none text-slate-700 pr-6 cursor-pointer"
+            >
+              <option value="todos">Todos los asesores</option>
+              {asesoresUnicos.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+        )}
+
+        {/* Date range */}
+        <div className="flex items-center gap-2 bg-white rounded-xl border border-slate-200 px-3 py-2 shadow-sm">
+          <Calendar size={14} className="text-slate-400" />
+          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+            className="text-sm bg-transparent border-none outline-none text-slate-700" />
+          <span className="text-slate-300">—</span>
+          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+            className="text-sm bg-transparent border-none outline-none text-slate-700" />
+          {(dateFrom || dateTo) && (
+            <button onClick={() => { setDateFrom(''); setDateTo(''); }}
+              className="ml-1 p-0.5 rounded-full hover:bg-slate-100 transition-colors">
+              <X size={14} className="text-slate-400" />
+            </button>
           )}
         </div>
-      )}
 
-      {/* Filtro por fechas */}
-      <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
-        <label className="text-sm font-medium text-gray-500 whitespace-nowrap">Periodo:</label>
-        <div className="flex items-center gap-2">
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary"
-          />
-          <span className="text-gray-400 text-sm">—</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary"
-          />
-        </div>
-        {(dateFrom || dateTo) && (
-          <button
-            onClick={() => { setDateFrom(''); setDateTo(''); }}
-            className="text-xs text-secondary hover:underline whitespace-nowrap"
-          >
-            Limpiar
-          </button>
-        )}
-        {(dateFrom || dateTo) && (
-          <span className="text-xs text-gray-400">
-            {leadsFiltered.length} de {leads.length} leads
+        {/* Active filter tags */}
+        {(dateFrom || dateTo || selectedAsesor !== 'todos') && (
+          <span className="text-[11px] text-slate-400 font-medium">
+            {leadsFiltered.length} de {allLeads.length} leads
           </span>
         )}
       </div>
 
-      {/* KPIs Principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Total Leads"
-          value={leadsFiltered.length}
-          icon="🎯"
-          change={12}
-          changeLabel="vs mes anterior"
-        />
-        
-        <StatCard
-          title="Tasa de Contactabilidad"
-          value={`${tasaContactabilidad}%`}
-          icon="📞"
-          change={tasaContactabilidad > 70 ? 5 : -3}
-          changeLabel="vs mes anterior"
-        />
-        
-        <StatCard
-          title="En Seguimiento"
-          value={leadsPorEstado.seguimiento}
-          icon="💼"
-        />
-        
-        <StatCard
-          title="Tasa de Conversión"
-          value={`${tasaConversion}%`}
-          icon="📈"
-          change={tasaConversion > 10 ? 5 : -2}
-          changeLabel="vs mes anterior"
-        />
-      </div>
+      {/* ═══════════════════════════════════════════════════════
+          SECTION 1 — OVERVIEW
+          ═══════════════════════════════════════════════════════ */}
+      <section>
+        <SectionHeader title="Vista General" subtitle="Métricas clave de rendimiento" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <HeroCard
+            icon={<Users size={18} className="text-primary" />}
+            iconBg="bg-primary-light"
+            label="Total Leads"
+            value={leadsFiltered.length}
+            change={changeTotal}
+            changeLabel="vs periodo anterior"
+            sub={`${leadsActivos} activos`}
+          />
+          <HeroCard
+            icon={<Phone size={18} className="text-secondary" />}
+            iconBg="bg-secondary-light"
+            label="Contactabilidad"
+            value={`${tasaContactabilidad}%`}
+            percent={tasaContactabilidad}
+            ringColor={C.mint}
+            change={changeContactabilidad}
+            changeLabel="vs periodo anterior"
+          />
+          <HeroCard
+            icon={<Target size={18} className="text-primary" />}
+            iconBg="bg-primary-light"
+            label="Conversión"
+            value={`${tasaConversion}%`}
+            percent={tasaConversion}
+            ringColor={C.brand}
+            change={changeConversion}
+            changeLabel="vs periodo anterior"
+          />
+          <HeroCard
+            icon={<DollarSign size={18} className="text-secondary" />}
+            iconBg="bg-secondary-light"
+            label="Valor Pipeline"
+            value={fmt(valorPipeline)}
+            sub={`${fmt(valorGanados)} facturado`}
+          />
+        </div>
+      </section>
 
-      {/* Segunda fila de KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400">Valor Pipeline</p>
-              <p className="text-2xl font-bold text-secondary mt-1">
-                {formatCurrency(valorPipeline)}
-              </p>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center text-xl">💰</div>
-          </div>
-          <p className="text-xs text-gray-400 mt-2">{leadsActivos} leads activos</p>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400">Facturados</p>
-              <p className="text-2xl font-bold text-secondary mt-1">
-                {formatCurrency(valorGanados)}
-              </p>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center text-xl">✅</div>
-          </div>
-          <p className="text-xs text-gray-400 mt-2">{leadsPorEstado.facturado} cierres</p>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400">Leads Urgentes</p>
-              <p className="text-2xl font-bold text-red-500 mt-1">{leadsUrgentes}</p>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-xl">🚨</div>
-          </div>
-          <p className="text-xs text-gray-400 mt-2">Alta prioridad sin contactar</p>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400">CrediExpress</p>
-              <p className="text-2xl font-bold text-primary mt-1">
-                {leadsCrediExpressRecientes}
-              </p>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-xl">🔥</div>
-          </div>
-          <p className="text-xs text-gray-400 mt-2">Esta semana</p>
-        </Card>
-      </div>
-
-      {/* Gráficos y detalles */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Pipeline de ventas */}
-        <Card>
-          <h2 className="text-base font-semibold text-primary mb-4">Pipeline de Ventas</h2>
-          <div className="space-y-3">
-            {[
-              { status: 'Por Facturar', count: leadsPorEstado.porFacturar, color: 'bg-primary', total: leadsFiltered.length },
-              { status: 'Seguimiento', count: leadsPorEstado.seguimiento, color: 'bg-amber-400', total: leadsFiltered.length },
-              { status: 'Cita Agendada', count: leadsPorEstado.citaAgendada, color: 'bg-indigo-400', total: leadsFiltered.length },
-              { status: 'Facturado', count: leadsPorEstado.facturado, color: 'bg-secondary', total: leadsFiltered.length },
-              { status: 'Caido', count: leadsPorEstado.caido, color: 'bg-red-400', total: leadsFiltered.length },
-              { status: 'No Contactado', count: leadsPorEstado.noContactado, color: 'bg-gray-300', total: leadsFiltered.length },
-            ].map((item) => {
-              const percentage = item.total > 0 ? (item.count / item.total) * 100 : 0;
-              return (
-                <div key={item.status} className="flex items-center gap-3">
-                  <div className="w-28 text-sm font-medium text-gray-500">{item.status}</div>
-                  <div className="flex-1 bg-gray-100 rounded-full h-2">
-                    <div
-                      className={`${item.color} h-2 rounded-full transition-all duration-500`}
-                      style={{ width: `${percentage}%` }}
-                    ></div>
+      {/* ═══════════════════════════════════════════════════════
+          SECTION 2 — PIPELINE & CONVERSION
+          ═══════════════════════════════════════════════════════ */}
+      <section>
+        <SectionHeader title="Pipeline y Conversión" subtitle="Estado de las ventas y eficiencia" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Pipeline bars — takes 2 cols */}
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+            <h3 className="text-sm font-semibold text-primary mb-5">Pipeline de Ventas</h3>
+            <div className="space-y-4">
+              {([
+                { label: 'Por Facturar', count: leadsPorEstado.porFacturar, color: C.brand },
+                { label: 'Seguimiento', count: leadsPorEstado.seguimiento, color: C.amber500 },
+                { label: 'Cita Agendada', count: leadsPorEstado.citaAgendada, color: C.indigo500 },
+                { label: 'Facturado', count: leadsPorEstado.facturado, color: C.mint },
+                { label: 'Caido', count: leadsPorEstado.caido, color: C.red500 },
+                { label: 'No Contactado', count: leadsPorEstado.noContactado, color: C.gray400 },
+              ] as const).map(item => {
+                const pct = leadsFiltered.length > 0 ? (item.count / leadsFiltered.length) * 100 : 0;
+                return (
+                  <div key={item.label} className="group/bar">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-medium text-slate-600">{item.label}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-slate-400">{pct.toFixed(0)}%</span>
+                        <span className="text-xs font-bold text-primary w-6 text-right">{item.count}</span>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700 ease-out group-hover/bar:opacity-80"
+                        style={{ width: `${pct}%`, backgroundColor: item.color }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-12 text-right text-sm font-semibold text-primary">
-                    {item.count}
-                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Efficiency metrics — right column */}
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-primary-light flex items-center justify-center">
+                  <Tag size={16} className="text-primary" />
                 </div>
-              );
-            })}
-          </div>
-        </Card>
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Ticket Promedio</span>
+              </div>
+              <p className="text-2xl font-bold text-primary">{fmt(ticketPromedio)}</p>
+              <p className="text-[11px] text-slate-400 mt-1">por lead activo</p>
+            </div>
 
-        {/* Leads Recientes */}
-        <Card>
-          <h2 className="text-base font-semibold text-primary mb-4">Leads Recientes</h2>
-          <div className="space-y-2">
-            {leadsRecientes.length === 0 ? (
-              <p className="text-gray-400 text-center py-4">No hay leads aún</p>
+            <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                  <Clock size={16} className="text-amber-600" />
+                </div>
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Tiempo de Cierre</span>
+              </div>
+              <p className="text-2xl font-bold text-primary">{tiempoPromedioCierre !== null ? `${tiempoPromedioCierre} días` : '—'}</p>
+              <p className="text-[11px] text-slate-400 mt-1">promedio de creación a factura</p>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-secondary-light flex items-center justify-center">
+                  <DollarSign size={16} className="text-secondary" />
+                </div>
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Facturado</span>
+              </div>
+              <p className="text-2xl font-bold text-primary">{fmt(valorGanados)}</p>
+              <p className="text-[11px] text-slate-400 mt-1">{leadsPorEstado.facturado} cierres</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════
+          SECTION 3 — LEAD ANALYSIS & ALERTS
+          ═══════════════════════════════════════════════════════ */}
+      <section>
+        <SectionHeader title="Análisis de Leads" subtitle="Fuentes, alertas y áreas de mejora" />
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          {/* Fuente chart — 3 cols */}
+          <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+            <h3 className="text-sm font-semibold text-primary mb-4">Leads por Fuente</h3>
+            {dataFuente.length === 0 ? (
+              <p className="text-slate-400 text-center py-12 text-sm">Sin datos</p>
             ) : (
-              leadsRecientes.map((lead) => (
-                <div
-                  key={lead.id}
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex-1">
-                    <div className="font-medium text-primary text-sm">{lead.fullName}</div>
-                    <div className="text-xs text-gray-400">{lead.phone}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className={`text-xs font-medium ${getStatusColor(lead.status)}`}>
-                      {lead.status}
-                    </div>
-                    <div className="text-sm font-semibold text-secondary">
-                      {formatCurrency(lead.vehicleAmount || 0)}
-                    </div>
-                  </div>
-                </div>
-              ))
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie data={dataFuente} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={3} dataKey="value" label={renderPieLabel} labelLine={false} style={{ fontSize: 11 }}>
+                    {dataFuente.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip content={<ChartTooltip />} />
+                  <Legend verticalAlign="bottom" iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                </PieChart>
+              </ResponsiveContainer>
             )}
           </div>
-        </Card>
-      </div>
 
-      {/* Alertas y acciones rápidas */}
-      {leadsUrgentes > 0 && (
-        <Card>
-          <div className="flex items-start gap-3">
-            <div className="text-3xl">⚠️</div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-primary">Acción Requerida</h3>
-              <p className="text-gray-500 text-sm mt-1">
-                Tienes <strong className="text-primary">{leadsUrgentes} leads de alta prioridad</strong> que aún no han sido contactados.
-                Es importante hacer seguimiento dentro de las próximas 24 horas para maximizar la conversión.
-              </p>
-              <div className="mt-3">
-                <a
-                  href="#/leads"
-                  className="inline-flex items-center px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary-hover transition-colors"
-                >
-                  Ver Leads Urgentes
-                </a>
+          {/* Alert badges — 2 cols */}
+          <div className="lg:col-span-2 space-y-4">
+            <AlertBadge
+              icon={<AlertTriangle size={20} className="text-red-500" />}
+              label="Leads Urgentes"
+              value={leadsUrgentes}
+              color="text-red-600"
+              bgColor="bg-red-50"
+              desc="Alta prioridad sin contactar"
+              href="#/leads"
+            />
+            <AlertBadge
+              icon={<UserX size={20} className="text-amber-500" />}
+              label="Sin Seguimiento"
+              value={leadsOlvidados}
+              color="text-amber-600"
+              bgColor="bg-amber-50"
+              desc="+7 días sin contacto"
+            />
+            <AlertBadge
+              icon={<TrendingDown size={20} className="text-slate-500" />}
+              label="Tasa de Caída"
+              value={tasaCaida}
+              color="text-slate-600"
+              bgColor="bg-slate-50"
+              desc={`${leadsPorEstado.caido} leads perdidos`}
+            />
+            {dataMotivoPerdida.length > 0 && (
+              <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+                <h4 className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Motivos de Pérdida</h4>
+                <div className="space-y-2">
+                  {dataMotivoPerdida.slice(0, 4).map((m, i) => (
+                    <div key={m.name} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                        <span className="text-xs text-slate-600">{m.name}</span>
+                      </div>
+                      <span className="text-xs font-semibold text-primary">{m.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════
+          SECTION 4 — TEAM ACTIVITY
+          ═══════════════════════════════════════════════════════ */}
+      <section>
+        <SectionHeader title="Actividad del Equipo" subtitle="Volumen de leads y rendimiento" />
+
+        {/* Daily ingress */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm mb-4">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-sm font-semibold text-primary">Ingreso Diario de Leads</h3>
+            <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+              {[7, 15, 30].map(d => (
+                <button key={d} onClick={() => setDiasTendencia(d)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all duration-200 ${
+                    diasTendencia === d ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-primary'}`}>
+                  {d}d
+                </button>
+              ))}
             </div>
           </div>
-        </Card>
-      )}
+          {dataTendenciaDiaria.every(d => !d.CrediExpress && !d['Aprobados en Vivo'] && !d.Otros) ? (
+            <p className="text-slate-400 text-center py-12 text-sm">Sin actividad en este periodo</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={dataTendenciaDiaria} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.slate100} />
+                <XAxis dataKey="name" tick={{ fontSize: diasTendencia > 15 ? 9 : 11, fill: C.slate500 }} interval={diasTendencia <= 7 ? 0 : diasTendencia <= 15 ? 1 : 2} axisLine={{ stroke: C.slate300 }} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: C.slate500 }} axisLine={false} tickLine={false} />
+                <Tooltip content={<ChartTooltip />} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
+                <Bar dataKey="CrediExpress" stackId="a" fill={C.brand} />
+                <Bar dataKey="Aprobados en Vivo" stackId="a" fill={C.mint} />
+                <Bar dataKey="Otros" stackId="a" fill={C.gray400} radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Asesor performance (admin only) */}
+        {isAdmin && dataAsesor.length > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+            <h3 className="text-sm font-semibold text-primary mb-5">Rendimiento por Asesor</h3>
+            <ResponsiveContainer width="100%" height={Math.max(220, dataAsesor.length * 48)}>
+              <BarChart data={dataAsesor} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.slate100} horizontal={false} />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: C.slate500 }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: C.brand }} axisLine={false} tickLine={false} />
+                <Tooltip content={<ChartTooltip />} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                <Bar dataKey="Facturado" stackId="a" fill={C.mint} />
+                <Bar dataKey="Seguimiento" stackId="a" fill={C.amber500} />
+                <Bar dataKey="Por Facturar" stackId="a" fill={C.brand} />
+                <Bar dataKey="Caido" stackId="a" fill={C.red500} radius={[0, 3, 3, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════
+          SECTION 5 — RECENT ACTIVITY
+          ═══════════════════════════════════════════════════════ */}
+
+      <section>
+        <SectionHeader title="Actividad Reciente" subtitle="Últimos leads registrados"
+          right={
+            <a href="#/leads" className="text-xs font-medium text-secondary hover:text-secondary-hover transition-colors flex items-center gap-1">
+              Ver todos <ChevronRight size={14} />
+            </a>
+          }
+        />
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          {leadsRecientes.length === 0 ? (
+            <p className="text-slate-400 text-center py-12 text-sm">No hay leads aún</p>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/50">
+                  <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-6 py-3">Nombre</th>
+                  <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Teléfono</th>
+                  <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">Estado</th>
+                  <th className="text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-6 py-3">Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leadsRecientes.map((lead) => (
+                  <tr key={lead.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-3.5">
+                      <p className="text-sm font-medium text-primary">{lead.fullName}</p>
+                      <p className="text-[11px] text-slate-400 sm:hidden">{lead.phone}</p>
+                    </td>
+                    <td className="px-4 py-3.5 hidden sm:table-cell">
+                      <span className="text-sm text-slate-500">{lead.phone}</span>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS_BG[lead.status] || 'bg-slate-100 text-slate-600'}`}>
+                        {lead.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3.5 text-right">
+                      <span className="text-sm font-semibold text-primary">{fmt(lead.vehicleAmount || 0)}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════
+          SECTION 6 — ÍNDICE DE APROBACIÓN CREDIEXPRESS
+          ═══════════════════════════════════════════════════════ */}
+      <section>
+        <SectionHeader
+          title="Índice de Aprobación — Crediexpress"
+          subtitle="De todas las solicitudes recibidas en Firebase, cuántas son aprobadas"
+        />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Big approval rate card */}
+          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm flex flex-col items-center justify-center gap-3">
+            <div className="relative w-32 h-32">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[
+                      { v: approvalStats.tasaAprobacion },
+                      { v: Math.max(0, 100 - approvalStats.tasaAprobacion) },
+                    ]}
+                    cx="50%" cy="50%"
+                    innerRadius={42} outerRadius={56}
+                    startAngle={90} endAngle={-270}
+                    dataKey="v"
+                    strokeWidth={0}
+                  >
+                    <Cell fill={C.mint} />
+                    <Cell fill={C.slate100} />
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-bold text-primary leading-none">{approvalStats.tasaAprobacion}%</span>
+                <span className="text-[10px] text-slate-400 mt-0.5">aprobación</span>
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tasa de Aprobación</p>
+              <p className="text-[11px] text-slate-400 mt-1">
+                {approvalStats.aprobados} aprobados de {approvalStats.total} solicitudes totales
+              </p>
+            </div>
+          </div>
+
+          {/* Breakdown cards */}
+          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Aprobados */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 rounded-xl bg-secondary-light flex items-center justify-center">
+                  <CheckCircle size={18} className="text-secondary" />
+                </div>
+                <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Aprobados</span>
+              </div>
+              <p className="text-3xl font-bold text-primary">{approvalStats.aprobados}</p>
+              <div className="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-secondary transition-all duration-700"
+                  style={{ width: approvalStats.total > 0 ? `${(approvalStats.aprobados / approvalStats.total) * 100}%` : '0%' }}
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1.5">
+                {approvalStats.total > 0 ? Math.round((approvalStats.aprobados / approvalStats.total) * 100) : 0}% del total
+              </p>
+            </div>
+
+            {/* Rechazados */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
+                  <XCircle size={18} className="text-red-500" />
+                </div>
+                <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Rechazados</span>
+              </div>
+              <p className="text-3xl font-bold text-primary">{approvalStats.rechazados}</p>
+              <div className="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-red-400 transition-all duration-700"
+                  style={{ width: approvalStats.total > 0 ? `${(approvalStats.rechazados / approvalStats.total) * 100}%` : '0%' }}
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1.5">
+                {approvalStats.total > 0 ? Math.round((approvalStats.rechazados / approvalStats.total) * 100) : 0}% del total
+              </p>
+            </div>
+
+            {/* Pendientes / en revisión */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+                  <Hourglass size={18} className="text-amber-500" />
+                </div>
+                <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Pendientes</span>
+              </div>
+              <p className="text-3xl font-bold text-primary">{approvalStats.pendientes}</p>
+              <div className="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-amber-400 transition-all duration-700"
+                  style={{ width: approvalStats.total > 0 ? `${(approvalStats.pendientes / approvalStats.total) * 100}%` : '0%' }}
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1.5">
+                {approvalStats.total > 0 ? Math.round((approvalStats.pendientes / approvalStats.total) * 100) : 0}% del total
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

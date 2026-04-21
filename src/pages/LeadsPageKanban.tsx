@@ -344,7 +344,7 @@ export const LeadsPageKanban: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-secondary mx-auto"></div>
           <p className="mt-4 text-gray-600">Cargando leads...</p>
         </div>
       </div>
@@ -513,7 +513,7 @@ export const LeadsPageKanban: React.FC = () => {
                   href={`https://wa.me/${String(selectedLead.phone).replace(/\D/g, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-secondary hover:bg-secondary-hover text-white rounded-lg text-sm font-medium transition-colors"
                 >
                   💬 WhatsApp
                 </a>
@@ -835,7 +835,7 @@ export const LeadsPageKanban: React.FC = () => {
               onChange={(e) => setCreateForm({...createForm, observaciones: e.target.value})}
               placeholder="Notas adicionales..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent text-sm"
             />
           </div>
         </div>

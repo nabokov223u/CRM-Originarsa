@@ -176,6 +176,47 @@ export const applicationsService = {
     }
   },
 
+  // Suscripción a TODAS las applications sin filtrar (para estadísticas reales)
+  // IMPORTANT: sin orderBy para incluir docs que no tengan createdAt
+  subscribeToAllRaw(callback: (applications: Application[]) => void) {
+    return onSnapshot(collection(db, COLLECTION_NAME), (querySnapshot) => {
+      const applications = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          applicant: {
+            fullName: data.applicant?.fullName || '',
+            email: data.applicant?.email || '',
+            phone: String(data.applicant?.phone || ''),
+            idNumber: String(data.applicant?.idNumber || ''),
+            maritalStatus: data.applicant?.maritalStatus || '',
+            spouseId: data.applicant?.spouseId,
+          },
+          loan: {
+            downPaymentPct: data.loan?.downPaymentPct || 0,
+            termMonths: data.loan?.termMonths || 0,
+            vehicleAmount: data.loan?.vehicleAmount || 0,
+          },
+          status: data.status || "pending",
+          crmStatus: data.crmStatus,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
+          score: data.score,
+          creditLimit: data.creditLimit,
+          origen: data.origen,
+          asesor: data.asesor,
+          concesionario: data.concesionario,
+          codigoSolicitud: data.codigoSolicitud,
+          etiqueta: data.etiqueta,
+          ultimaNota: data.ultimaNota,
+        } as Application;
+      });
+      callback(applications);
+    }, (error) => {
+      console.error("Error en tiempo real de applications (raw):", error);
+    });
+  },
+
   // Actualizar campos arbitrarios en la application (etiqueta, ultimaNota, etc.)
   async updateFields(id: string, fields: Record<string, unknown>): Promise<void> {
     try {

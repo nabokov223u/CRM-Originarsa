@@ -47,7 +47,7 @@ export const PhaseMap: React.FC<PhaseMapProps> = ({ phaseId }) => {
             <Arrow label="Mes a Mes" />
             <div className="flex flex-col gap-4 border-l-2 border-gray-200 pl-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <div className="w-3 h-3 rounded-full bg-secondary"></div>
                 <span className="text-sm font-medium">Perfil A (Puntual)</span>
               </div>
               <div className="flex items-center gap-2">
@@ -111,8 +111,8 @@ const Node = ({ title, subtitle, type = 'process', highlight = false }: any) => 
   const styles: any = {
     start: 'bg-white border-2 border-gray-800 text-gray-900 rounded-full px-6',
     process: 'bg-white border border-gray-300 text-gray-600 rounded-lg',
-    action: 'bg-blue-50 border border-blue-200 text-blue-700 rounded-lg shadow-sm',
-    success: 'bg-green-50 border border-green-200 text-green-700 rounded-lg shadow-sm',
+    action: 'bg-primary-light border border-primary/20 text-primary rounded-lg shadow-sm',
+    success: 'bg-secondary-light border border-secondary/20 text-secondary rounded-lg shadow-sm',
     end: 'bg-red-50 border border-red-200 text-red-700 rounded-lg',
   };
 
@@ -120,7 +120,7 @@ const Node = ({ title, subtitle, type = 'process', highlight = false }: any) => 
     <div className={`
       flex flex-col items-center justify-center p-3 min-w-[140px] text-center transition-all
       ${styles[type]} 
-      ${highlight ? 'ring-2 ring-offset-2 ring-blue-400 transform scale-105' : ''}
+      ${highlight ? 'ring-2 ring-offset-2 ring-secondary transform scale-105' : ''}
     `}>
       <span className="font-bold text-sm">{title}</span>
       {subtitle && <span className="text-[10px] mt-1 opacity-80">{subtitle}</span>}

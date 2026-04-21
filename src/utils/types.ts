@@ -9,7 +9,7 @@ export type LeadStatus =
 
 // Etiquetas por estado del pipeline
 export const ETIQUETAS_POR_ESTADO: Record<string, string[]> = {
-  'Seguimiento': ['Condiciones', 'Inventario'],
+  'Seguimiento': ['Condiciones', 'Inventario', 'Sin Respuesta'],
   'Cita Agendada': ['Presencial', 'Virtual'],
   'Caido': ['Contado', 'Cotización', 'Competencia'],
   'No Contactado': ['Inubicable', 'Seguimiento'],

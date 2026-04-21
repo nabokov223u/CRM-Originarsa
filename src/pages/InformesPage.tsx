@@ -29,8 +29,8 @@ const REPORTS: ReportTemplate[] = [
     title: 'Rendimiento Comercial',
     description: 'Métricas de conversión por asesor, tiempos de respuesta y pipeline de ventas.',
     icon: TrendingUp,
-    color: 'text-blue-600',
-    iconBg: 'bg-blue-50',
+    color: 'text-primary',
+    iconBg: 'bg-primary-light',
     status: 'próximamente',
   },
   {

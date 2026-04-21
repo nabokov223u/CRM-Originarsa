@@ -38,9 +38,9 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
       case 'Reunión':
         return 'bg-purple-100 text-purple-800 border-purple-300';
       case 'Email':
-        return 'bg-green-100 text-green-800 border-green-300';
+        return 'bg-secondary-light text-secondary border-secondary/20';
       case 'WhatsApp':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+        return 'bg-secondary-light text-secondary border-secondary/20';
       case 'Nota':
         return 'bg-yellow-100 text-yellow-800 border-yellow-300';
       case 'Cambio de Estado':

@@ -73,10 +73,10 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
         hover: 'hover:border-secondary/50'
       },
       blue: {
-        header: 'bg-blue-50 border-blue-200',
-        badge: 'bg-blue-200 text-blue-900',
-        border: 'border-blue-400 bg-blue-50',
-        hover: 'hover:border-blue-300'
+        header: 'bg-primary-light border-primary/20',
+        badge: 'bg-primary/10 text-primary',
+        border: 'border-primary bg-primary-light',
+        hover: 'hover:border-primary/50'
       },
       yellow: {
         header: 'bg-yellow-50 border-yellow-200',
@@ -103,10 +103,10 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
         hover: 'hover:border-indigo-300'
       },
       green: {
-        header: 'bg-green-50 border-green-200',
-        badge: 'bg-green-200 text-green-900',
-        border: 'border-green-400 bg-green-50',
-        hover: 'hover:border-green-300'
+        header: 'bg-secondary-light border-secondary/20',
+        badge: 'bg-secondary/10 text-secondary',
+        border: 'border-secondary bg-secondary-light',
+        hover: 'hover:border-secondary/50'
       },
     };
     return styles[color] || styles.blue;
