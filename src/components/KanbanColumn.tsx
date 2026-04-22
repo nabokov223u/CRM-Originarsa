@@ -1,5 +1,6 @@
 import React from 'react';
-import { Lead, LeadStatus } from '../utils/types';
+import { Lead, LeadAlert, LeadStatus } from '../utils/types';
+import { formatLeadEntryDateTime } from '../utils/dateTime';
 
 interface KanbanColumnProps {
   title: string;
@@ -9,6 +10,7 @@ interface KanbanColumnProps {
   color: string;
   onLeadClick: (lead: Lead) => void;
   onDrop: (leadId: string, newStatus: LeadStatus) => void;
+  alertsByLeadId?: Record<string, LeadAlert>;
 }
 
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -19,6 +21,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   color,
   onLeadClick,
   onDrop,
+  alertsByLeadId = {},
 }) => {
   const [isDraggingOver, setIsDraggingOver] = React.useState(false);
 
@@ -148,6 +151,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
                 onClick={() => onLeadClick(lead)}
                 getPriorityColor={getPriorityColor}
                 formatCurrency={formatCurrency}
+                alert={alertsByLeadId[lead.id]}
               />
             ))}
           </div>
@@ -162,6 +166,7 @@ interface KanbanCardProps {
   onClick: () => void;
   getPriorityColor: (priority?: string) => string;
   formatCurrency: (amount: number) => string;
+  alert?: LeadAlert;
 }
 
 const KanbanCard: React.FC<KanbanCardProps> = ({
@@ -169,10 +174,21 @@ const KanbanCard: React.FC<KanbanCardProps> = ({
   onClick,
   getPriorityColor,
   formatCurrency,
+  alert,
 }) => {
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('leadId', lead.id);
     e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const leadContextLabel = lead.concesionario || lead.vehiculoInteres;
+
+  const leadContextIcon = lead.concesionario ? '🏢' : '🚗';
+
+  const alertStyles: Record<LeadAlert['currentLevel'], string> = {
+    warning: 'bg-amber-100 text-amber-800',
+    overdue: 'bg-red-100 text-red-700',
+    critical: 'bg-red-600 text-white',
   };
 
   return (
@@ -206,6 +222,20 @@ const KanbanCard: React.FC<KanbanCardProps> = ({
 
       {/* Info adicional */}
       <div className="space-y-1 text-xs text-gray-400">
+        <div className="flex items-center">
+          <span className="mr-1">🕒</span>
+          <span>{formatLeadEntryDateTime(lead)}</span>
+        </div>
+
+        {alert && (
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${alertStyles[alert.currentLevel]}`}>
+              {alert.badgeLabel}
+            </span>
+            <span>{alert.roundedHoursElapsed}h útiles</span>
+          </div>
+        )}
+
         {lead.phone && (
           <div className="flex items-center">
             <span className="mr-1">📱</span>
@@ -213,10 +243,10 @@ const KanbanCard: React.FC<KanbanCardProps> = ({
           </div>
         )}
         
-        {lead.vehiculoInteres && (
+        {leadContextLabel && (
           <div className="flex items-center">
-            <span className="mr-1">🚗</span>
-            <span className="truncate">{lead.vehiculoInteres}</span>
+            <span className="mr-1">{leadContextIcon}</span>
+            <span className="truncate">{leadContextLabel}</span>
           </div>
         )}
 

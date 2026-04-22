@@ -2,6 +2,8 @@ import { leadsService } from './firestore/leads';
 import { applicationsService, type Application } from './firestore/applications';
 import { convertApplicationToLead } from '../utils/convertApplications';
 import type { Lead } from '../utils/types';
+import { getIdTokenResult } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 // Deduplicar applications de CrediExpress por cédula (idNumber).
 // Cuando hay múltiples solicitudes con la misma cédula, se conserva la más reciente.
@@ -23,6 +25,18 @@ function deduplicateApplications(apps: Application[]): Application[] {
     }
   }
   return Array.from(map.values());
+}
+
+async function ensureAdminAccess(): Promise<void> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('Debes iniciar sesión para eliminar leads.');
+  }
+
+  const tokenResult = await getIdTokenResult(currentUser);
+  if (tokenResult.claims.admin !== true) {
+    throw new Error('Solo los administradores pueden eliminar leads.');
+  }
 }
 
 export const unifiedLeadsService = {
@@ -109,7 +123,7 @@ export const unifiedLeadsService = {
     return leadId.replace('crediexpress_', '');
   },
 
-  // Métodos CRUD - solo para leads del CRM (no applications)
+  // Métodos CRUD del universo unificado.
   async create(lead: Omit<Lead, 'id'>): Promise<string> {
     return leadsService.create(lead);
   },
@@ -122,28 +136,22 @@ export const unifiedLeadsService = {
   },
 
   async delete(id: string): Promise<void> {
+    await ensureAdminAccess();
+
     if (this.isFromCrediExpress(id)) {
-      throw new Error('No se pueden eliminar leads de CrediExpress desde el CRM.');
+      return applicationsService.delete(this.getOriginalCrediExpressId(id));
     }
     return leadsService.delete(id);
   },
 
-  // Actualizar estado de una application de CrediExpress
-  async updateApplicationStatus(id: string, newStatus: string): Promise<void> {
+  // Actualizar estado comercial de una application en el CRM.
+  // El campo application.status pertenece a la decisión crediticia de CrediExpress
+  // y no debe sobrescribirse desde el pipeline comercial.
+  async updateApplicationStatus(id: string, newStatus: Lead['status']): Promise<void> {
     console.log(`🔄 Actualizando application ${id} a CRM status: ${newStatus}`);
     
-    // Guardar el estado del CRM directamente (sin mapeo)
+    // Guardar solo el estado del CRM para no contaminar la reportería crediticia.
     await applicationsService.updateCrmStatus(id, newStatus);
-    
-    // Opcionalmente, también actualizar el status de CrediExpress si es relevante
-    // Solo cambiamos el status de CrediExpress para estados finales
-    if (newStatus === "Facturado") {
-      await applicationsService.updateStatus(id, "approved");
-    } else if (newStatus === "Caido") {
-      await applicationsService.updateStatus(id, "rejected");
-    }
-    // Para otros estados (Por Facturar, Seguimiento, No Contactado)
-    // solo guardamos en crmStatus, manteniendo el status original de CrediExpress
     
     console.log(`✅ Application ${id} actualizada a CRM status: ${newStatus}`);
   },

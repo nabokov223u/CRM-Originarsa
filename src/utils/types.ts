@@ -1,8 +1,8 @@
 // Estados del pipeline de ventas
 export type LeadStatus = 
-  | "Por Facturar"     // Lead listo para facturar
+  | "Por Contactar"    // Lead nuevo pendiente de primer contacto
   | "Seguimiento"     // En seguimiento activo
-  | "Cita Agendada"   // Cita agendada (solo Telemarketing)
+  | "Por Facturar"    // Lead listo para pasar a facturación
   | "Facturado"       // Factura emitida
   | "Caido"           // Lead perdido/caído
   | "No Contactado";  // No se ha logrado contactar
@@ -10,7 +10,6 @@ export type LeadStatus =
 // Etiquetas por estado del pipeline
 export const ETIQUETAS_POR_ESTADO: Record<string, string[]> = {
   'Seguimiento': ['Condiciones', 'Inventario', 'Sin Respuesta'],
-  'Cita Agendada': ['Presencial', 'Virtual'],
   'Caido': ['Contado', 'Cotización', 'Competencia'],
   'No Contactado': ['Inubicable', 'Seguimiento'],
 };
@@ -39,12 +38,14 @@ export interface Lead {
   
   // ===== ESTADOS DEL CRM =====
   status: LeadStatus;
+  statusVersion?: number;        // Compatibilidad de esquema para distinguir estados legacy
   prioridad: LeadPriority;
   fuente: LeadSource;
   
   // ===== GESTIÓN COMERCIAL =====
   asignadoA?: string;           // ID o nombre del asesor
   vehiculoInteres?: string;     // Modelo que le interesa
+  concesionario?: string;       // Concesionario asociado al lead
   observaciones?: string;       // Notas del asesor
   
   // ===== TRACKING =====
@@ -82,6 +83,34 @@ export interface Lead {
   modelo?: string;
   notas?: string;
   ultimaInteraccion?: string;
+}
+
+export type LeadAlertLevel = 'warning' | 'overdue' | 'critical';
+
+export interface LeadAlert {
+  id: string;
+  alertType: 'por-contactar';
+  sourceCollection: 'leads' | 'applications';
+  sourceId: string;
+  leadId: string;
+  leadName: string;
+  advisorName?: string;
+  origin?: string;
+  leadStatus: string;
+  currentLevel: LeadAlertLevel;
+  badgeLabel: string;
+  workingHoursElapsed: number;
+  roundedHoursElapsed: number;
+  isActive: boolean;
+  startedAt?: any;
+  createdAt?: any;
+  updatedAt?: any;
+  lastEvaluatedAt?: any;
+  firstVisibleAt?: any;
+  warningTriggeredAt?: any;
+  overdueTriggeredAt?: any;
+  criticalTriggeredAt?: any;
+  resolvedAt?: any;
 }
 
 export interface Cliente {

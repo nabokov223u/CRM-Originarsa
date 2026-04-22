@@ -27,7 +27,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 var _a, _b, _c, _d;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.whatsappWebhook = exports.getWhatsAppTemplates = exports.updateUserRole = exports.listUsers = exports.updateUserDisplayName = exports.setAdminRole = exports.createUser = exports.onNewApplication = void 0;
+exports.syncLeadContactAlerts = exports.onApplicationWriteTrackContactAlerts = exports.onLeadWriteTrackContactAlerts = exports.whatsappWebhook = exports.getWhatsAppTemplates = exports.updateUserRole = exports.listUsers = exports.updateUserDisplayName = exports.setAdminRole = exports.createUser = exports.onNewApplication = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const twilio_1 = __importDefault(require("twilio"));
@@ -540,7 +540,11 @@ exports.updateUserRole = functions.https.onCall(async (data, context) => {
 });
 // Importar y exportar funciones de WhatsApp
 const whatsapp = __importStar(require("./whatsapp"));
+const leadAlerts = __importStar(require("./leadAlerts"));
 exports.getWhatsAppTemplates = whatsapp.getWhatsAppTemplates;
 // export const sendWhatsAppTemplate = whatsapp.sendWhatsAppTemplate;
 exports.whatsappWebhook = whatsapp.whatsappWebhook;
+exports.onLeadWriteTrackContactAlerts = leadAlerts.onLeadWriteTrackContactAlerts;
+exports.onApplicationWriteTrackContactAlerts = leadAlerts.onApplicationWriteTrackContactAlerts;
+exports.syncLeadContactAlerts = leadAlerts.syncLeadContactAlerts;
 //# sourceMappingURL=index.js.map

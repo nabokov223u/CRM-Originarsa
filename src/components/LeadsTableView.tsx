@@ -1,16 +1,22 @@
 import React, { useState } from 'react';
 import { Lead, LeadStatus } from '../utils/types';
+import { PIPELINE_STATUSES } from '../utils/leadStatus';
+import { formatLeadEntryDate } from '../utils/dateTime';
 
 interface LeadsTableViewProps {
   leads: Lead[];
   onLeadClick: (lead: Lead) => void;
   onStatusChange: (leadId: string, newStatus: LeadStatus) => void;
+  isAdmin?: boolean;
+  onDeleteLead?: (lead: Lead) => void;
 }
 
 export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
   leads,
   onLeadClick,
   onStatusChange,
+  isAdmin = false,
+  onDeleteLead,
 }) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-EC', {
@@ -20,30 +26,16 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
     }).format(amount);
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '-';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('es-EC', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-    } catch {
-      return dateString;
-    }
-  };
-
   const getStatusColor = (status: LeadStatus) => {
     switch (status) {
-      case 'Por Facturar':
+      case 'Por Contactar':
         return 'bg-primary/10 text-primary';
+      case 'Por Facturar':
+        return 'bg-violet-100 text-violet-800';
       case 'Facturado':
         return 'bg-secondary-light text-secondary';
       case 'Seguimiento':
         return 'bg-yellow-100 text-yellow-800';
-      case 'Cita Agendada':
-        return 'bg-indigo-100 text-indigo-800';
       case 'Caido':
         return 'bg-red-100 text-red-800';
       case 'No Contactado':
@@ -53,14 +45,7 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
     }
   };
 
-  const statusOptions: LeadStatus[] = [
-    'Por Facturar',
-    'Seguimiento',
-    'Cita Agendada',
-    'Facturado',
-    'Caido',
-    'No Contactado',
-  ];
+  const statusOptions: LeadStatus[] = PIPELINE_STATUSES;
 
   const getEtiquetaColor = (etiqueta?: string) => {
     switch (etiqueta) {
@@ -117,6 +102,11 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                 Última Nota
               </th>
+              {isAdmin && (
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  Acciones
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-50">
@@ -191,7 +181,7 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatDate(lead.fechaCreacion)}
+                  {formatLeadEntryDate(lead)}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
                   {lead.ultimaNota ? (
@@ -212,6 +202,16 @@ export const LeadsTableView: React.FC<LeadsTableViewProps> = ({
                     <span className="text-gray-400 text-xs">Sin notas</span>
                   )}
                 </td>
+                {isAdmin && (
+                  <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => onDeleteLead?.(lead)}
+                      className="text-red-600 hover:text-red-800 text-sm font-medium"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

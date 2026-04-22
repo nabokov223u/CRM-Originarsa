@@ -4,20 +4,39 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { exportToCSV, exportToJSON, exportToExcel } from '../utils/export';
+import { useAuth } from '../hooks/useAuth';
 
 interface ClientesPageProps {
   leads: Lead[];
 }
 
 export const ClientesPage: React.FC<ClientesPageProps> = ({ leads }) => {
+  const { user, isAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
+  const normalize = (value: string) => value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  const visibleLeads = useMemo(() => {
+    if (isAdmin) return leads;
+
+    const displayName = user?.displayName?.trim();
+    if (!displayName) return [];
+
+    const normalizedName = normalize(displayName);
+
+    return leads.filter((lead) => {
+      const asesor = (lead.asesor || '').trim();
+      if (!asesor) return false;
+      return normalize(asesor) === normalizedName;
+    });
+  }, [leads, isAdmin, user?.displayName]);
+
   // Derivar clientes desde leads facturados
   const clientes = useMemo(() => {
-    return leads
+    return visibleLeads
       .filter(l => l.status === 'Facturado')
       .map(l => ({
         id: l.id,
@@ -32,7 +51,7 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({ leads }) => {
         fechaCierre: l.fechaCierre || l.fechaCreacion,
         origen: l.origen || l.fuente || '',
       }));
-  }, [leads]);
+  }, [visibleLeads]);
 
   // Filtro por fechas
   const clientesFiltradosPorFecha = useMemo(() => {

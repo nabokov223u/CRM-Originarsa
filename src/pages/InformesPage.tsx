@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { ShieldCheck, ChevronRight, Database, TrendingUp, Users, Clock } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { ShieldCheck, ChevronRight, Database, TrendingUp, Users, Clock, AlertTriangle } from 'lucide-react';
 import { CalidadDatosReport } from '../components/CalidadDatosReport';
+import { LeadContactAlertsReport } from '../components/LeadContactAlertsReport';
+import { useAuth } from '../hooks/useAuth';
 
-type ReportView = 'hub' | 'calidad-datos';
+type ReportView = 'hub' | 'calidad-datos' | 'sla-contacto';
 
 interface ReportTemplate {
   id: ReportView;
@@ -12,6 +14,7 @@ interface ReportTemplate {
   color: string;
   iconBg: string;
   status: 'activo' | 'próximamente';
+  adminOnly?: boolean;
 }
 
 const REPORTS: ReportTemplate[] = [
@@ -23,6 +26,16 @@ const REPORTS: ReportTemplate[] = [
     color: 'text-secondary',
     iconBg: 'bg-secondary/10',
     status: 'activo',
+  },
+  {
+    id: 'sla-contacto',
+    title: 'SLA de Primer Contacto',
+    description: 'Informe admin con la cantidad de leads que superaron 24 horas útiles en Por Contactar y su distribución por asesor.',
+    icon: AlertTriangle,
+    color: 'text-red-600',
+    iconBg: 'bg-red-50',
+    status: 'activo',
+    adminOnly: true,
   },
   {
     id: 'hub',
@@ -54,10 +67,20 @@ const REPORTS: ReportTemplate[] = [
 ];
 
 export const InformesPage: React.FC = () => {
+  const { isAdmin } = useAuth();
   const [activeView, setActiveView] = useState<ReportView>('hub');
+
+  const visibleReports = useMemo(
+    () => REPORTS.filter((report) => !report.adminOnly || isAdmin),
+    [isAdmin],
+  );
 
   if (activeView === 'calidad-datos') {
     return <CalidadDatosReport onBack={() => setActiveView('hub')} />;
+  }
+
+  if (activeView === 'sla-contacto') {
+    return <LeadContactAlertsReport onBack={() => setActiveView('hub')} />;
   }
 
   return (
@@ -77,7 +100,7 @@ export const InformesPage: React.FC = () => {
 
       {/* Report Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {REPORTS.map((report, idx) => {
+        {visibleReports.map((report, idx) => {
           const Icon = report.icon;
           const isActive = report.status === 'activo';
           return (

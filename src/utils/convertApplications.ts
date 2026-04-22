@@ -1,28 +1,29 @@
 import type { Application } from '../services/firestore/applications';
 import type { Lead } from './types';
+import { DEFAULT_LEAD_STATUS, normalizeLeadStatus } from './leadStatus';
 
 // Función para convertir una Application de CrediExpress a Lead del CRM
 export function convertApplicationToLead(application: Application): Omit<Lead, 'id'> {
   // ✅ Estructura de datos corregida - usando applicant.* y status directo
 
   // Determinar el status basado en crmStatus si existe, sino mapear desde CrediExpress
-  let status: Lead['status'] = 'Por Facturar';
+  let status: Lead['status'] = DEFAULT_LEAD_STATUS;
   
   if (application.crmStatus) {
     // Si tiene un estado del CRM guardado, usarlo directamente
-    status = application.crmStatus as Lead['status'];
+    status = normalizeLeadStatus(application.crmStatus, application.crmStatusVersion);
   } else if (application.status === 'rejected') {
     // Si fue rechazado en CrediExpress y no tiene crmStatus, marcarlo como Caido
     status = 'Caido';
   } else {
-    // Todos los nuevos leads de CrediExpress empiezan en "Por Facturar"
-    status = 'Por Facturar';
+    // Todos los nuevos leads de CrediExpress empiezan en "Por Contactar"
+    status = DEFAULT_LEAD_STATUS;
   }
 
   // Crear fecha de creación
-  let fechaCreacion = new Date().toISOString().split('T')[0];
+  let fechaCreacion = new Date().toISOString();
   if (application.createdAt && application.createdAt.toDate) {
-    fechaCreacion = application.createdAt.toDate().toISOString().split('T')[0];
+    fechaCreacion = application.createdAt.toDate().toISOString();
   }
 
   // Construir notas con información del crédito
@@ -53,6 +54,7 @@ export function convertApplicationToLead(application: Application): Omit<Lead, '
     
     // Campos del CRM - Estados del pipeline
     status: status,
+    statusVersion: application.crmStatusVersion,
     prioridad: 'Media', // Todos empiezan en Media, el asesor puede cambiarla después
     fuente: application.origen || 'CrediExpress',
     fechaCreacion: fechaCreacion,
@@ -66,6 +68,7 @@ export function convertApplicationToLead(application: Application): Omit<Lead, '
     
     // Gestión comercial
     vehiculoInteres: 'Por definir',
+    concesionario: application.concesionario,
     observaciones: notasArray.join('\n'),
     asignadoA: undefined, // Sin asignar inicialmente
     

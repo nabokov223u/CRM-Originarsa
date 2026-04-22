@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Lead, LeadStatus, Actividad, ETIQUETAS_POR_ESTADO } from '../utils/types';
+import { Lead, LeadAlert, LeadStatus, Actividad, ETIQUETAS_POR_ESTADO } from '../utils/types';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { LeadsTableView } from '../components/LeadsTableView';
 import { ActivityTimeline } from '../components/ActivityTimeline';
@@ -13,11 +13,17 @@ import { applicationsService } from '../services/firestore/applications';
 import { getActivitiesByLead, createNoteActivity } from '../services/firestore/activities';
 import { exportToCSV, exportToJSON, exportToExcel } from '../utils/export';
 import { useAuth } from '../hooks/useAuth';
+import { getLeadCampaign, sortCampaignNames } from '../utils/campaigns';
+import { DEFAULT_LEAD_STATUS, PIPELINE_STATUSES } from '../utils/leadStatus';
+import { getVisibleLeadAlertMap } from '../utils/leadAlerts';
+import { formatLeadEntryDateTime } from '../utils/dateTime';
+import { leadAlertsService } from '../services/firestore/leadAlerts';
 import { LayoutGrid, List, Search, Download, ChevronDown } from 'lucide-react';
 
 export const LeadsPageKanban: React.FC = () => {
   const { user, isAdmin } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState<LeadAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [leadActivities, setLeadActivities] = useState<Actividad[]>([]);
@@ -37,6 +43,7 @@ export const LeadsPageKanban: React.FC = () => {
 
   // Estado para filtro de asesor (admin)
   const [selectedAsesor, setSelectedAsesor] = useState<string>('todos');
+  const [selectedCampaign, setSelectedCampaign] = useState<string>('todas');
 
   // Estado para crear nuevo lead
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -46,7 +53,7 @@ export const LeadsPageKanban: React.FC = () => {
     email: '',
     idNumber: '',
     vehicleAmount: '',
-    status: 'Por Facturar' as LeadStatus,
+    status: DEFAULT_LEAD_STATUS as LeadStatus,
     etiqueta: '',
     origen: '',
     asesor: '',
@@ -78,6 +85,16 @@ export const LeadsPageKanban: React.FC = () => {
       loadActivities(selectedLead.id);
     }
   }, [selectedLead]);
+
+  useEffect(() => {
+    const unsubscribe = leadAlertsService.subscribeToActive((alerts) => {
+      setActiveAlerts(alerts);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   const loadActivities = async (leadId: string) => {
     try {
@@ -173,6 +190,35 @@ export const LeadsPageKanban: React.FC = () => {
     }
   };
 
+  const deleteLead = async (lead: Lead) => {
+    if (!isAdmin) {
+      alert('Solo los administradores pueden eliminar leads.');
+      return;
+    }
+
+    const confirmed = window.confirm(`¿Estás seguro de eliminar el lead ${lead.fullName}? Esta acción no se puede deshacer.`);
+    if (!confirmed) return;
+
+    try {
+      await unifiedLeadsService.delete(lead.id);
+
+      if (selectedLead?.id === lead.id) {
+        handleCloseModal();
+      }
+
+      console.log('✅ Lead eliminado correctamente');
+    } catch (error) {
+      console.error('Error eliminando lead:', error);
+      alert('Error al eliminar el lead. ' + (error as Error).message);
+    }
+  };
+
+  const handleDeleteLead = async () => {
+    if (!selectedLead) return;
+
+    await deleteLead(selectedLead);
+  };
+
   // Normalizar texto removiendo acentos para comparación
   const normalize = (str: string) => str.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
@@ -202,20 +248,45 @@ export const LeadsPageKanban: React.FC = () => {
     });
   }, [leads, isAdmin, user?.displayName, selectedAsesor]);
 
+  const campaignsUnicas = useMemo(() => {
+    const set = new Set<string>();
+    userLeads.forEach((lead) => set.add(getLeadCampaign(lead)));
+    return sortCampaignNames(Array.from(set));
+  }, [userLeads]);
+
+  useEffect(() => {
+    if (selectedCampaign !== 'todas' && !campaignsUnicas.includes(selectedCampaign)) {
+      setSelectedCampaign('todas');
+    }
+  }, [campaignsUnicas, selectedCampaign]);
+
+  const campaignLeads = useMemo(() => {
+    if (selectedCampaign === 'todas') return userLeads;
+    return userLeads.filter((lead) => getLeadCampaign(lead) === selectedCampaign);
+  }, [userLeads, selectedCampaign]);
+
   // Filtrar leads por búsqueda
   const filteredLeads = useMemo(() => {
-    if (!searchQuery.trim()) return userLeads;
+    if (!searchQuery.trim()) return campaignLeads;
     const q = searchQuery.toLowerCase();
     const safe = (val: unknown) => (val != null ? String(val).toLowerCase() : '');
-    return userLeads.filter(lead => 
+    return campaignLeads.filter(lead => 
       safe(lead.fullName).includes(q) ||
       safe(lead.phone).includes(q) ||
       safe(lead.email).includes(q) ||
       safe(lead.asesor).includes(q) ||
       safe(lead.origen).includes(q) ||
+      safe(getLeadCampaign(lead)).includes(q) ||
       safe(lead.idNumber).includes(q)
     );
-  }, [userLeads, searchQuery]);
+  }, [campaignLeads, searchQuery]);
+
+  const visibleAlertsByLeadId = useMemo(
+    () => getVisibleLeadAlertMap(activeAlerts, { isAdmin, viewerName: user?.displayName || null }),
+    [activeAlerts, isAdmin, user?.displayName],
+  );
+
+  const selectedLeadAlert = selectedLead ? visibleAlertsByLeadId[selectedLead.id] : undefined;
 
   // Exportar leads
   const handleExport = (format: 'csv' | 'json' | 'excel') => {
@@ -224,6 +295,7 @@ export const LeadsPageKanban: React.FC = () => {
       Teléfono: l.phone,
       Email: l.email,
       Cédula: l.idNumber,
+      Campaña: getLeadCampaign(l),
       Estado: l.status,
       Etiqueta: l.etiqueta || '',
       Origen: l.origen || '',
@@ -260,7 +332,7 @@ export const LeadsPageKanban: React.FC = () => {
         asesor: createForm.asesor.trim() || undefined,
         prioridad: 'Media',
         fuente: 'Web',
-        fechaCreacion: new Date().toISOString().split('T')[0],
+        fechaCreacion: new Date().toISOString(),
         observaciones: createForm.observaciones.trim() || undefined,
         nombres: createForm.fullName.trim().split(' ').slice(0, 2).join(' '),
         apellidos: createForm.fullName.trim().split(' ').slice(2).join(' '),
@@ -279,7 +351,7 @@ export const LeadsPageKanban: React.FC = () => {
         email: '',
         idNumber: '',
         vehicleAmount: '',
-        status: 'Por Facturar',
+        status: DEFAULT_LEAD_STATUS,
         etiqueta: '',
         origen: '',
         asesor: '',
@@ -389,13 +461,23 @@ export const LeadsPageKanban: React.FC = () => {
               ))}
             </select>
           )}
+          <select
+            value={selectedCampaign}
+            onChange={(e) => setSelectedCampaign(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary min-w-[180px]"
+          >
+            <option value="todas">Todas las campañas</option>
+            {campaignsUnicas.map((campaign) => (
+              <option key={campaign} value={campaign}>{campaign}</option>
+            ))}
+          </select>
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por nombre, cédula, teléfono, asesor, origen..."
+              placeholder="Buscar por nombre, cédula, teléfono, asesor, origen o campaña..."
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary text-sm"
             />
           </div>
@@ -467,7 +549,7 @@ export const LeadsPageKanban: React.FC = () => {
             leads={filteredLeads}
             onLeadClick={handleLeadClick}
             onStatusChange={handleStatusChange}
-            isTelemarketing={user?.displayName?.trim() === 'Telemarketing' || (isAdmin && selectedAsesor === 'Telemarketing')}
+            alertsByLeadId={visibleAlertsByLeadId}
           />
         )}
 
@@ -477,6 +559,8 @@ export const LeadsPageKanban: React.FC = () => {
             leads={filteredLeads}
             onLeadClick={handleLeadClick}
             onStatusChange={handleStatusChange}
+            isAdmin={isAdmin}
+            onDeleteLead={deleteLead}
           />
         )}
       </div>
@@ -506,6 +590,11 @@ export const LeadsPageKanban: React.FC = () => {
                     ✏️ Editar
                   </Button>
                 )
+              )}
+              {!isEditing && isAdmin && (
+                <Button onClick={handleDeleteLead} variant="danger">
+                  🗑️ Eliminar
+                </Button>
               )}
               {/* WhatsApp */}
               {selectedLead.phone && (
@@ -594,8 +683,21 @@ export const LeadsPageKanban: React.FC = () => {
                   </p>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Fecha de Inicio</label>
-                  <p className="text-primary text-sm mt-0.5">📅 {selectedLead.fechaCreacion ? new Date(selectedLead.fechaCreacion).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</p>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Fecha y Hora de Ingreso</label>
+                  <p className="text-primary text-sm mt-0.5">📅 {formatLeadEntryDateTime(selectedLead)}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Alerta SLA</label>
+                  {selectedLeadAlert ? (
+                    <p className="text-primary text-sm mt-0.5">
+                      <span className={`px-3 py-1 rounded-full text-xs ${selectedLeadAlert.currentLevel === 'warning' ? 'bg-amber-100 text-amber-800' : selectedLeadAlert.currentLevel === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-red-600 text-white'}`}>
+                        {selectedLeadAlert.badgeLabel}
+                      </span>
+                      <span className="ml-2 text-xs text-gray-400">{selectedLeadAlert.roundedHoursElapsed}h útiles</span>
+                    </p>
+                  ) : (
+                    <p className="text-primary text-sm mt-0.5">—</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Teléfono</label>
@@ -787,12 +889,9 @@ export const LeadsPageKanban: React.FC = () => {
                 value={createForm.status}
                 onChange={(e) => setCreateForm({...createForm, status: e.target.value as LeadStatus, etiqueta: ''})}
               >
-                <option value="Por Facturar">Por Facturar</option>
-                <option value="Seguimiento">Seguimiento</option>
-                <option value="Cita Agendada">Cita Agendada</option>
-                <option value="Facturado">Facturado</option>
-                <option value="Caido">Caído</option>
-                <option value="No Contactado">No Contactado</option>
+                {PIPELINE_STATUSES.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
               </select>
             </div>
 

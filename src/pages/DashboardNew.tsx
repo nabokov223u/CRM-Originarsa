@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Lead } from '../utils/types';
+import { Lead, LeadAlert } from '../utils/types';
 import { unifiedLeadsService } from '../services/unifiedLeads';
 import { applicationsService, type Application } from '../services/firestore/applications';
+import { leadAlertsService } from '../services/firestore/leadAlerts';
 import { useAuth } from '../hooks/useAuth';
+import { getApplicationCampaign, getLeadCampaign, sortCampaignNames } from '../utils/campaigns';
+import { formatCalendarDayInEcuador, getDateKeyInEcuador, getLeadEntryDate, getLeadEntryDateKey, getLeadEntryTimestamp, parseEcuadorDateInput, parseStoredDateTime } from '../utils/dateTime';
+import { getVisibleLeadAlerts } from '../utils/leadAlerts';
 import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
 import {
-  Users, Phone, TrendingUp, DollarSign, Target, Clock,
+  Users, TrendingUp, DollarSign, Target, Clock,
   AlertTriangle, Tag, TrendingDown, UserX, Calendar,
   ChevronRight, Filter, X, CheckCircle, XCircle, Hourglass,
 } from 'lucide-react';
@@ -51,9 +55,9 @@ const C = {
 const PIE_COLORS = [C.brand, C.mint, C.amber500, C.indigo500, C.red500, C.violet500, C.sky500, C.slate500];
 
 const STATUS_BG: Record<string, string> = {
-  'Por Facturar': 'bg-primary-light text-primary',
+  'Por Contactar': 'bg-primary-light text-primary',
   'Seguimiento': 'bg-amber-50 text-amber-700',
-  'Cita Agendada': 'bg-indigo-50 text-indigo-700',
+  'Por Facturar': 'bg-violet-50 text-violet-700',
   'Facturado': 'bg-secondary-light text-secondary',
   'Caido': 'bg-red-50 text-red-700',
   'No Contactado': 'bg-gray-100 text-gray-600',
@@ -181,7 +185,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
   const [allLeads, setAllLeads] = useState<Lead[]>(externalLeads || []);
   const [loading, setLoading] = useState(!externalLeads);
   const [rawApplications, setRawApplications] = useState<Application[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState<LeadAlert[]>([]);
   const [selectedAsesor, setSelectedAsesor] = useState<string>('todos');
+  const [selectedCampaign, setSelectedCampaign] = useState<string>('todas');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [diasTendencia, setDiasTendencia] = useState(30);
@@ -206,7 +212,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
     return () => { unsubscribe(); };
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = leadAlertsService.subscribeToActive((alerts) => {
+      setActiveAlerts(alerts);
+    });
+    return () => { unsubscribe(); };
+  }, []);
+
   const normalize = (str: string) => str.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const hasCrmPipelineStatus = (application: Application) => Boolean((application.crmStatus || '').trim());
 
   const asesoresUnicos = useMemo(() => {
     const set = new Set<string>();
@@ -228,21 +242,60 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
     });
   }, [allLeads, isAdmin, user?.displayName, selectedAsesor]);
 
+  const campaignsUnicas = useMemo(() => {
+    const set = new Set<string>();
+    leads.forEach((lead) => set.add(getLeadCampaign(lead)));
+    return sortCampaignNames(Array.from(set));
+  }, [leads]);
+
+  useEffect(() => {
+    if (selectedCampaign !== 'todas' && !campaignsUnicas.includes(selectedCampaign)) {
+      setSelectedCampaign('todas');
+    }
+  }, [campaignsUnicas, selectedCampaign]);
+
+  const campaignLeads = useMemo(() => {
+    if (selectedCampaign === 'todas') return leads;
+    return leads.filter((lead) => getLeadCampaign(lead) === selectedCampaign);
+  }, [leads, selectedCampaign]);
+
+  const visibleApplications = useMemo(() => {
+    if (isAdmin) {
+      if (selectedAsesor === 'todos') return rawApplications;
+      return rawApplications.filter((application) => normalize((application.asesor || 'Telemarketing').trim()) === normalize(selectedAsesor));
+    }
+
+    const name = user?.displayName?.trim();
+    if (!name) return [];
+
+    const normalizedName = normalize(name);
+    return rawApplications.filter((application) => normalize((application.asesor || 'Telemarketing').trim()) === normalizedName);
+  }, [rawApplications, isAdmin, user?.displayName, selectedAsesor]);
+
+  const campaignApplications = useMemo(() => {
+    if (selectedCampaign === 'todas') return visibleApplications;
+    return visibleApplications.filter((application) => getApplicationCampaign(application) === selectedCampaign);
+  }, [visibleApplications, selectedCampaign]);
+
   const leadsFiltered = useMemo(() => {
-    if (!dateFrom && !dateTo) return leads;
-    return leads.filter(l => {
-      const f = new Date(l.fechaCreacion);
-      if (dateFrom && f < new Date(dateFrom)) return false;
-      if (dateTo) { const t = new Date(dateTo); t.setHours(23, 59, 59, 999); if (f > t) return false; }
+    if (!dateFrom && !dateTo) return campaignLeads;
+    const from = parseEcuadorDateInput(dateFrom);
+    const to = parseEcuadorDateInput(dateTo, true);
+
+    return campaignLeads.filter(l => {
+      const f = getLeadEntryDate(l);
+      if (!f) return false;
+      if (from && f < from) return false;
+      if (to && f > to) return false;
       return true;
     });
-  }, [leads, dateFrom, dateTo]);
+  }, [campaignLeads, dateFrom, dateTo]);
 
   /* ── Metrics ── */
   const leadsPorEstado = {
+    porContactar: leadsFiltered.filter(l => l.status === 'Por Contactar').length,
     porFacturar: leadsFiltered.filter(l => l.status === 'Por Facturar').length,
     seguimiento: leadsFiltered.filter(l => l.status === 'Seguimiento').length,
-    citaAgendada: leadsFiltered.filter(l => l.status === 'Cita Agendada').length,
     facturado: leadsFiltered.filter(l => l.status === 'Facturado').length,
     caido: leadsFiltered.filter(l => l.status === 'Caido').length,
     noContactado: leadsFiltered.filter(l => l.status === 'No Contactado').length,
@@ -250,40 +303,53 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
 
   const leadsActivos = leadsFiltered.filter(l => l.status !== 'Caido').length;
 
-  const tasaContactabilidad = leadsFiltered.length > 0
-    ? Math.round((leadsFiltered.filter(l => ['Facturado', 'Seguimiento', 'Cita Agendada', 'Por Facturar'].includes(l.status) && l.etiqueta !== 'Sin Respuesta').length / leadsFiltered.length) * 100) : 0;
-
   const tasaConversion = leadsFiltered.length > 0
     ? Math.round((leadsPorEstado.facturado / leadsFiltered.length) * 100) : 0;
 
   const valorPipeline = leadsFiltered.filter(l => l.status !== 'Caido').reduce((s, l) => s + (l.vehicleAmount || 0), 0);
+  const valorPorFacturar = leadsFiltered.filter(l => l.status === 'Por Facturar').reduce((s, l) => s + (l.vehicleAmount || 0), 0);
   const valorGanados = leadsFiltered.filter(l => l.status === 'Facturado').reduce((s, l) => s + (l.montoFinal || l.vehicleAmount || 0), 0);
-  const leadsUrgentes = leadsFiltered.filter(l => l.status === 'Por Facturar' && l.prioridad === 'Alta').length;
+  const leadsUrgentes = leadsFiltered.filter(l => l.status === 'Por Contactar' && l.prioridad === 'Alta').length;
+  const leadsEnFacturacion = leadsPorEstado.porFacturar + leadsPorEstado.facturado;
+  const tasaConvertibilidad = leadsEnFacturacion > 0
+    ? Math.round((leadsPorEstado.facturado / leadsEnFacturacion) * 100)
+    : 0;
+  const visibleLeadIds = useMemo(() => new Set(leadsFiltered.map((lead) => lead.id)), [leadsFiltered]);
+  const visibleContactAlerts = useMemo(() => {
+    return getVisibleLeadAlerts(activeAlerts, { isAdmin, viewerName: user?.displayName || null })
+      .filter((alert) => visibleLeadIds.has(alert.leadId));
+  }, [activeAlerts, isAdmin, user?.displayName, visibleLeadIds]);
+  const alertasContacto = visibleContactAlerts.length;
+  const alertasCriticas = visibleContactAlerts.filter((alert) => alert.currentLevel === 'critical').length;
+  const alertasVencidas = visibleContactAlerts.filter((alert) => alert.currentLevel !== 'warning').length;
 
   const ticketPromedio = leadsActivos > 0 ? Math.round(valorPipeline / leadsActivos) : 0;
   const tiempoPromedioCierre = useMemo(() => {
-    const f = leadsFiltered.filter(l => l.status === 'Facturado' && l.fechaCierre && l.fechaCreacion);
+    const f = leadsFiltered.filter((lead) => lead.status === 'Facturado' && lead.fechaCierre && getLeadEntryDate(lead));
     if (!f.length) return null;
-    return Math.round(f.reduce((s, l) => s + Math.max(0, Math.ceil((new Date(l.fechaCierre!).getTime() - new Date(l.fechaCreacion).getTime()) / 86400000)), 0) / f.length);
+    return Math.round(f.reduce((sum, lead) => {
+      const createdAt = getLeadEntryDate(lead);
+      const closedAt = parseStoredDateTime(lead.fechaCierre);
+      if (!createdAt || !closedAt) return sum;
+      return sum + Math.max(0, Math.ceil((closedAt.getTime() - createdAt.getTime()) / 86400000));
+    }, 0) / f.length);
   }, [leadsFiltered]);
 
   const tasaCaida = leadsFiltered.length > 0 ? Math.round((leadsPorEstado.caido / leadsFiltered.length) * 100) : 0;
 
-  /* ── Approval rate metrics (only Crediexpress: sin origen o origen = 'CrediExpress') ── */
+  /* ── Approval rate metrics (CrediExpress) ──
+     application.status = decisión crediticia original
+     application.crmStatus = estado comercial dentro del CRM
+     Los registros legacy que llegaron al CRM y luego cayeron no deben dejar de contar como aprobados. */
   const approvalStats = useMemo(() => {
-    // Las solicitudes de Crediexpress: sin origen O con origen explícito 'CrediExpress'
-    // (misma lógica que convertApplicationToLead: fuente = application.origen || 'CrediExpress')
-    const crediexpress = rawApplications.filter(a => {
-      const o = (a.origen || '').trim().toLowerCase();
-      return o === '' || o === 'crediexpress';
-    });
+    const crediexpress = campaignApplications.filter((application) => getApplicationCampaign(application) === 'CrediExpress');
     const total = crediexpress.length;
-    const aprobados = crediexpress.filter(a => a.status === 'approved').length;
-    const rechazados = crediexpress.filter(a => a.status === 'rejected' || a.status === 'denied').length;
-    const pendientes = crediexpress.filter(a => a.status === 'pending' || a.status === 'review').length;
+    const aprobados = crediexpress.filter(a => a.status === 'approved' || hasCrmPipelineStatus(a)).length;
+    const rechazados = crediexpress.filter(a => !hasCrmPipelineStatus(a) && (a.status === 'rejected' || a.status === 'denied')).length;
+    const pendientes = crediexpress.filter(a => !hasCrmPipelineStatus(a) && (a.status === 'pending' || a.status === 'review')).length;
     const tasaAprobacion = total > 0 ? Math.round((aprobados / total) * 100) : 0;
     return { total, aprobados, rechazados, pendientes, tasaAprobacion };
-  }, [rawApplications]);
+  }, [campaignApplications]);
 
   const cutoff7 = new Date(); cutoff7.setDate(cutoff7.getDate() - 7);
   const leadsOlvidados = leadsFiltered.filter(l => {
@@ -295,19 +361,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
   /* ── Period comparison ── */
   const periodComparison = useMemo(() => {
     const now = new Date();
+    const leadTimestamps = campaignLeads.map(getLeadEntryTimestamp).filter((timestamp) => timestamp > 0);
+    const earliestLeadDate = leadTimestamps.length > 0 ? new Date(Math.min(...leadTimestamps)) : now;
+
     if (dateFrom || dateTo) {
-      const from = dateFrom ? new Date(dateFrom) : new Date(Math.min(...leads.map(l => new Date(l.fechaCreacion).getTime())));
-      const to = dateTo ? new Date(dateTo) : now; to.setHours(23, 59, 59, 999);
+      const from = dateFrom ? (parseEcuadorDateInput(dateFrom) || earliestLeadDate) : earliestLeadDate;
+      const to = dateTo ? (parseEcuadorDateInput(dateTo, true) || now) : now; to.setHours(23, 59, 59, 999);
       const days = Math.max(1, Math.ceil((to.getTime() - from.getTime()) / 86400000));
       const pf = new Date(from); pf.setDate(pf.getDate() - days);
       const pt = new Date(from); pt.setDate(pt.getDate() - 1); pt.setHours(23, 59, 59, 999);
-      return leads.filter(l => { const d = new Date(l.fechaCreacion); return d >= pf && d <= pt; });
+      return campaignLeads.filter((lead) => {
+        const d = getLeadEntryDate(lead);
+        return Boolean(d && d >= pf && d <= pt);
+      });
     }
     const ms = new Date(now.getFullYear(), now.getMonth(), 1);
     const ps = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const pe = new Date(ms); pe.setDate(pe.getDate() - 1); pe.setHours(23, 59, 59, 999);
-    return leads.filter(l => { const d = new Date(l.fechaCreacion); return d >= ps && d <= pe; });
-  }, [leads, dateFrom, dateTo]);
+    return campaignLeads.filter((lead) => {
+      const d = getLeadEntryDate(lead);
+      return Boolean(d && d >= ps && d <= pe);
+    });
+  }, [campaignLeads, dateFrom, dateTo]);
 
   const calcChange = (cur: number, prev: number): number | undefined => {
     if (!prev && !cur) return undefined;
@@ -315,19 +390,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
     return Math.round(((cur - prev) / prev) * 100);
   };
   const prevTotal = periodComparison.length;
-  const prevContactados = periodComparison.filter(l => ['Facturado', 'Seguimiento', 'Cita Agendada', 'Por Facturar'].includes(l.status) && l.etiqueta !== 'Sin Respuesta').length;
-  const prevTasaContactabilidad = prevTotal > 0 ? Math.round((prevContactados / prevTotal) * 100) : 0;
+  const prevPorFacturar = periodComparison.filter(l => l.status === 'Por Facturar').length;
   const prevFacturados = periodComparison.filter(l => l.status === 'Facturado').length;
+  const prevLeadsEnFacturacion = prevPorFacturar + prevFacturados;
+  const prevTasaConvertibilidad = prevLeadsEnFacturacion > 0 ? Math.round((prevFacturados / prevLeadsEnFacturacion) * 100) : 0;
   const prevTasaConversion = prevTotal > 0 ? Math.round((prevFacturados / prevTotal) * 100) : 0;
 
   const changeTotal = calcChange(leadsFiltered.length, prevTotal);
-  const changeContactabilidad = calcChange(tasaContactabilidad, prevTasaContactabilidad);
+  const changeConvertibilidad = calcChange(tasaConvertibilidad, prevTasaConvertibilidad);
   const changeConversion = calcChange(tasaConversion, prevTasaConversion);
 
   /* ── Chart Data ── */
   const dataFuente = useMemo(() => {
     const c: Record<string, number> = {};
-    leadsFiltered.forEach(l => { const f = l.fuente || 'Otro'; c[f] = (c[f] || 0) + 1; });
+    leadsFiltered.forEach((lead) => {
+      const campaign = getLeadCampaign(lead);
+      c[campaign] = (c[campaign] || 0) + 1;
+    });
     return Object.entries(c).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [leadsFiltered]);
 
@@ -337,20 +416,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
     const days: { name: string; date: string; CrediExpress: number; 'Aprobados en Vivo': number; Otros: number }[] = [];
     const cur = new Date(inicio);
     while (cur <= hoy) {
-      days.push({ name: `${String(cur.getDate()).padStart(2, '0')}/${String(cur.getMonth() + 1).padStart(2, '0')}`, date: cur.toISOString().split('T')[0], CrediExpress: 0, 'Aprobados en Vivo': 0, Otros: 0 });
+      days.push({ name: formatCalendarDayInEcuador(cur), date: getDateKeyInEcuador(cur), CrediExpress: 0, 'Aprobados en Vivo': 0, Otros: 0 });
       cur.setDate(cur.getDate() + 1);
     }
-    leads.forEach(l => {
-      const fe = (l.fechaCreacion || '').substring(0, 10);
+    campaignLeads.forEach((lead) => {
+      const fe = getLeadEntryDateKey(lead);
+      if (!fe) return;
       const d = days.find(x => x.date === fe);
       if (!d) return;
-      const src = l.fuente || '';
-      if (src === 'CrediExpress') d.CrediExpress++;
-      else if (src === 'Aprobados en Vivo' || src === 'Aprobados no Facturados') d['Aprobados en Vivo']++;
+      const campaign = getLeadCampaign(lead);
+      if (campaign === 'CrediExpress') d.CrediExpress++;
+      else if (campaign === 'Aprobados en Vivo') d['Aprobados en Vivo']++;
       else d.Otros++;
     });
     return days;
-  }, [leads, diasTendencia]);
+  }, [campaignLeads, diasTendencia]);
+
+  const showApprovalStats = selectedCampaign === 'todas' || selectedCampaign === 'CrediExpress';
 
   const dataAsesor = useMemo(() => {
     if (!isAdmin) return [];
@@ -363,7 +445,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
     return Object.entries(m).map(([name, st]) => ({
       name: name.length > 18 ? name.slice(0, 18) + '…' : name,
       Facturado: st['Facturado'] || 0, Seguimiento: st['Seguimiento'] || 0,
-      'Por Facturar': st['Por Facturar'] || 0, Caido: st['Caido'] || 0,
+      'Por Contactar': st['Por Contactar'] || 0, 'Por Facturar': st['Por Facturar'] || 0, Caido: st['Caido'] || 0,
       total: Object.values(st).reduce((s, v) => s + v, 0),
     })).sort((a, b) => b.total - a.total);
   }, [leadsFiltered, isAdmin]);
@@ -378,7 +460,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
   }, [leadsFiltered]);
 
   const leadsRecientes = useMemo(() =>
-    [...leadsFiltered].sort((a, b) => new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime()).slice(0, 5),
+    [...leadsFiltered].sort((a, b) => getLeadEntryTimestamp(b) - getLeadEntryTimestamp(a)).slice(0, 5),
   [leadsFiltered]);
 
   const fmt = (n: number) => new Intl.NumberFormat('es-EC', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
@@ -418,6 +500,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
           </div>
         )}
 
+        <div className="flex items-center gap-2 bg-white rounded-xl border border-slate-200 px-3 py-2 shadow-sm">
+          <Tag size={14} className="text-slate-400" />
+          <select
+            value={selectedCampaign}
+            onChange={(e) => setSelectedCampaign(e.target.value)}
+            className="text-sm bg-transparent border-none outline-none text-slate-700 pr-6 cursor-pointer"
+          >
+            <option value="todas">Todas las campañas</option>
+            {campaignsUnicas.map((campaign) => <option key={campaign} value={campaign}>{campaign}</option>)}
+          </select>
+        </div>
+
         {/* Date range */}
         <div className="flex items-center gap-2 bg-white rounded-xl border border-slate-200 px-3 py-2 shadow-sm">
           <Calendar size={14} className="text-slate-400" />
@@ -435,7 +529,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
         </div>
 
         {/* Active filter tags */}
-        {(dateFrom || dateTo || selectedAsesor !== 'todos') && (
+        {(dateFrom || dateTo || selectedAsesor !== 'todos' || selectedCampaign !== 'todas') && (
           <span className="text-[11px] text-slate-400 font-medium">
             {leadsFiltered.length} de {allLeads.length} leads
           </span>
@@ -458,14 +552,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
             sub={`${leadsActivos} activos`}
           />
           <HeroCard
-            icon={<Phone size={18} className="text-secondary" />}
+            icon={<CheckCircle size={18} className="text-secondary" />}
             iconBg="bg-secondary-light"
-            label="Contactabilidad"
-            value={`${tasaContactabilidad}%`}
-            percent={tasaContactabilidad}
+            label="Convertibilidad"
+            value={`${tasaConvertibilidad}%`}
+            percent={tasaConvertibilidad}
             ringColor={C.mint}
-            change={changeContactabilidad}
+            change={changeConvertibilidad}
             changeLabel="vs periodo anterior"
+            sub={`${leadsPorEstado.facturado} facturados de ${leadsEnFacturacion} en facturación`}
           />
           <HeroCard
             icon={<Target size={18} className="text-primary" />}
@@ -480,9 +575,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
           <HeroCard
             icon={<DollarSign size={18} className="text-secondary" />}
             iconBg="bg-secondary-light"
-            label="Valor Pipeline"
-            value={fmt(valorPipeline)}
-            sub={`${fmt(valorGanados)} facturado`}
+            label="Valor por Facturar"
+            value={fmt(valorPorFacturar)}
+            sub={`${leadsPorEstado.porFacturar} leads en esta etapa`}
           />
         </div>
       </section>
@@ -498,9 +593,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
             <h3 className="text-sm font-semibold text-primary mb-5">Pipeline de Ventas</h3>
             <div className="space-y-4">
               {([
-                { label: 'Por Facturar', count: leadsPorEstado.porFacturar, color: C.brand },
+                { label: 'Por Contactar', count: leadsPorEstado.porContactar, color: C.brand },
                 { label: 'Seguimiento', count: leadsPorEstado.seguimiento, color: C.amber500 },
-                { label: 'Cita Agendada', count: leadsPorEstado.citaAgendada, color: C.indigo500 },
+                { label: 'Por Facturar', count: leadsPorEstado.porFacturar, color: C.violet500 },
                 { label: 'Facturado', count: leadsPorEstado.facturado, color: C.mint },
                 { label: 'Caido', count: leadsPorEstado.caido, color: C.red500 },
                 { label: 'No Contactado', count: leadsPorEstado.noContactado, color: C.gray400 },
@@ -573,7 +668,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           {/* Fuente chart — 3 cols */}
           <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-primary mb-4">Leads por Fuente</h3>
+            <h3 className="text-sm font-semibold text-primary mb-4">Leads por Campaña</h3>
             {dataFuente.length === 0 ? (
               <p className="text-slate-400 text-center py-12 text-sm">Sin datos</p>
             ) : (
@@ -591,6 +686,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
 
           {/* Alert badges — 2 cols */}
           <div className="lg:col-span-2 space-y-4">
+            <AlertBadge
+              icon={<AlertTriangle size={20} className={isAdmin ? 'text-red-500' : 'text-amber-500'} />}
+              label="Alertas por Contactar"
+              value={alertasContacto}
+              color={isAdmin ? 'text-red-600' : 'text-amber-600'}
+              bgColor={isAdmin ? 'bg-red-50' : 'bg-amber-50'}
+              desc={isAdmin ? `${alertasVencidas} alertas visibles desde 24h+, fines de semana suspendidos` : `${alertasCriticas} críticas; incluye preventiva de 12h, fines de semana suspendidos`}
+              href="#/leads"
+            />
             <AlertBadge
               icon={<AlertTriangle size={20} className="text-red-500" />}
               label="Leads Urgentes"
@@ -685,9 +789,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
                 <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: C.brand }} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltip />} />
                 <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                <Bar dataKey="Por Contactar" stackId="a" fill={C.brand} />
                 <Bar dataKey="Facturado" stackId="a" fill={C.mint} />
                 <Bar dataKey="Seguimiento" stackId="a" fill={C.amber500} />
-                <Bar dataKey="Por Facturar" stackId="a" fill={C.brand} />
+                <Bar dataKey="Por Facturar" stackId="a" fill={C.violet500} />
                 <Bar dataKey="Caido" stackId="a" fill={C.red500} radius={[0, 3, 3, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -749,6 +854,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
       {/* ═══════════════════════════════════════════════════════
           SECTION 6 — ÍNDICE DE APROBACIÓN CREDIEXPRESS
           ═══════════════════════════════════════════════════════ */}
+      {showApprovalStats && (
       <section>
         <SectionHeader
           title="Índice de Aprobación — Crediexpress"
@@ -853,6 +959,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
           </div>
         </div>
       </section>
+      )}
     </div>
   );
 };

@@ -588,6 +588,10 @@ export const updateUserRole = functions.https.onCall(async (data, context) => {
 
 // Importar y exportar funciones de WhatsApp
 import * as whatsapp from './whatsapp';
+import * as leadAlerts from './leadAlerts';
 export const getWhatsAppTemplates = whatsapp.getWhatsAppTemplates;
 // export const sendWhatsAppTemplate = whatsapp.sendWhatsAppTemplate;
 export const whatsappWebhook = whatsapp.whatsappWebhook;
+export const onLeadWriteTrackContactAlerts = leadAlerts.onLeadWriteTrackContactAlerts;
+export const onApplicationWriteTrackContactAlerts = leadAlerts.onApplicationWriteTrackContactAlerts;
+export const syncLeadContactAlerts = leadAlerts.syncLeadContactAlerts;

@@ -14,6 +14,7 @@
 import { db } from "../../lib/firebase";
 import type { Lead, LeadStatus, LeadPriority } from "../../utils/types";
 import { createStatusChangeActivity } from "./activities";
+import { DEFAULT_LEAD_STATUS, LEAD_STATUS_SCHEMA_VERSION, normalizeLeadStatus } from '../../utils/leadStatus';
 
 const COLLECTION_NAME = "leads";
 
@@ -39,10 +40,11 @@ export const leadsService = {
             phone: String(data.phone || ''),
             idNumber: String(data.idNumber || ''),
             maritalStatus: data.maritalStatus,
-            status: data.status || 'Por Facturar',
+            status: normalizeLeadStatus(data.status, data.statusVersion),
+            statusVersion: data.statusVersion,
             prioridad: data.prioridad || 'Media',
             fuente: data.fuente || 'Aprobados no Facturados',
-            fechaCreacion: data.fechaCreacion || new Date().toISOString().split('T')[0],
+            fechaCreacion: data.fechaCreacion || new Date().toISOString(),
             fechaUltimoContacto: data.fechaUltimoContacto,
             vehicleAmount: data.vehicleAmount || data.presupuesto || 0,
             downPaymentPct: data.downPaymentPct,
@@ -81,10 +83,11 @@ export const leadsService = {
             phone: String(data.phone || data.telefono || ''),
             idNumber: String(data.idNumber || data.cedula || ''),
             maritalStatus: data.maritalStatus,
-            status: data.status || 'Por Facturar',
+            status: normalizeLeadStatus(data.status, data.statusVersion),
+            statusVersion: data.statusVersion,
             prioridad: data.prioridad || 'Media',
             fuente: data.fuente || 'Web',
-            fechaCreacion: data.fechaCreacion || new Date().toISOString().split('T')[0],
+            fechaCreacion: data.fechaCreacion || new Date().toISOString(),
             fechaUltimoContacto: data.fechaUltimoContacto || data.ultimaInteraccion,
             vehicleAmount: data.vehicleAmount || data.presupuesto || 0,
             downPaymentPct: data.downPaymentPct,
@@ -141,10 +144,11 @@ export const leadsService = {
             phone: String(data.phone || ''),
             idNumber: String(data.idNumber || ''),
             maritalStatus: data.maritalStatus,
-            status: data.status || 'Por Facturar',
+            status: normalizeLeadStatus(data.status, data.statusVersion),
+            statusVersion: data.statusVersion,
             prioridad: data.prioridad || 'Media',
             fuente: data.fuente || 'Aprobados no Facturados',
-            fechaCreacion: data.fechaCreacion || new Date().toISOString().split('T')[0],
+            fechaCreacion: data.fechaCreacion || new Date().toISOString(),
             fechaUltimoContacto: data.fechaUltimoContacto,
             vehicleAmount: data.vehicleAmount || data.presupuesto || 0,
             downPaymentPct: data.downPaymentPct,
@@ -183,10 +187,11 @@ export const leadsService = {
             phone: String(data.phone || data.telefono || ''),
             idNumber: String(data.idNumber || data.cedula || ''),
             maritalStatus: data.maritalStatus,
-            status: data.status || 'Por Facturar',
+            status: normalizeLeadStatus(data.status, data.statusVersion),
+            statusVersion: data.statusVersion,
             prioridad: data.prioridad || 'Media',
             fuente: data.fuente || 'Web',
-            fechaCreacion: data.fechaCreacion || new Date().toISOString().split('T')[0],
+            fechaCreacion: data.fechaCreacion || new Date().toISOString(),
             fechaUltimoContacto: data.fechaUltimoContacto || data.ultimaInteraccion,
             vehicleAmount: data.vehicleAmount || data.presupuesto || 0,
             downPaymentPct: data.downPaymentPct,
@@ -231,8 +236,9 @@ export const leadsService = {
         ...lead,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
-        fechaCreacion: new Date().toISOString().split('T')[0],
-        status: lead.status || "Por Facturar",
+        fechaCreacion: new Date().toISOString(),
+        status: lead.status || DEFAULT_LEAD_STATUS,
+        statusVersion: LEAD_STATUS_SCHEMA_VERSION,
         prioridad: lead.prioridad || "Media",
         fuente: lead.fuente || "CrediExpress",
       });
@@ -247,10 +253,18 @@ export const leadsService = {
   async update(id: string, lead: Partial<Lead>): Promise<void> {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
-      await updateDoc(docRef, {
+      const payload: Record<string, unknown> = {
         ...lead,
         updatedAt: Timestamp.now(),
         ultimaInteraccion: new Date().toISOString().split('T')[0],
+      };
+
+      if (lead.status) {
+        payload.statusVersion = LEAD_STATUS_SCHEMA_VERSION;
+      }
+
+      await updateDoc(docRef, {
+        ...payload,
       });
     } catch (error) {
       console.error("Error actualizando lead:", error);
@@ -284,6 +298,7 @@ export const leadsService = {
       const docRef = doc(db, COLLECTION_NAME, id);
       await updateDoc(docRef, {
         status: newStatus,
+        statusVersion: LEAD_STATUS_SCHEMA_VERSION,
         updatedAt: Timestamp.now(),
         fechaUltimoContacto: new Date().toISOString().split('T')[0], // Solo fecha YYYY-MM-DD
       });

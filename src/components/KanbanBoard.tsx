@@ -1,12 +1,13 @@
 import React from 'react';
-import { Lead, LeadStatus } from '../utils/types';
+import { Lead, LeadAlert, LeadStatus } from '../utils/types';
 import { KanbanColumn } from './KanbanColumn';
+import { DEFAULT_LEAD_STATUS } from '../utils/leadStatus';
 
 interface KanbanBoardProps {
   leads: Lead[];
   onLeadClick: (lead: Lead) => void;
   onStatusChange: (leadId: string, newStatus: LeadStatus) => void;
-  isTelemarketing?: boolean;
+  alertsByLeadId?: Record<string, LeadAlert>;
 }
 
 // Configuración de las columnas del Kanban (orden nuevo)
@@ -14,11 +15,10 @@ const ALL_KANBAN_COLUMNS: Array<{
   status: LeadStatus;
   title: string;
   color: string;
-  telemarketingOnly?: boolean;
 }> = [
-  { status: 'Por Facturar', title: '📋 Por Facturar', color: 'primary' },
+  { status: 'Por Contactar', title: '📋 Por Contactar', color: 'primary' },
   { status: 'Seguimiento', title: '🔄 Seguimiento', color: 'yellow' },
-  { status: 'Cita Agendada', title: '📅 Cita Agendada', color: 'indigo', telemarketingOnly: true },
+  { status: 'Por Facturar', title: '🧾 Por Facturar', color: 'purple' },
   { status: 'Facturado', title: '✅ Facturado', color: 'green' },
   { status: 'Caido', title: '❌ Caído', color: 'orange' },
 ];
@@ -27,31 +27,26 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   leads,
   onLeadClick,
   onStatusChange,
-  isTelemarketing = false,
+  alertsByLeadId = {},
 }) => {
-  // Filtrar columnas según usuario
-  const KANBAN_COLUMNS = React.useMemo(() => {
-    return ALL_KANBAN_COLUMNS.filter(col => !col.telemarketingOnly || isTelemarketing);
-  }, [isTelemarketing]);
-
   // Agrupar leads por estado
   const leadsByStatus = React.useMemo(() => {
     const grouped: Record<string, Lead[]> = {
+      'Por Contactar': [],
       'Por Facturar': [],
       'Seguimiento': [],
-      'Cita Agendada': [],
       'Facturado': [],
       'Caido': [],
       'No Contactado': [],
     };
 
     leads.forEach((lead) => {
-      const status = lead.status || 'Por Facturar';
+      const status = lead.status || DEFAULT_LEAD_STATUS;
       if (grouped[status]) {
         grouped[status].push(lead);
       } else {
         // Mapear estados antiguos al nuevo pipeline
-        grouped['Por Facturar'].push(lead);
+        grouped[DEFAULT_LEAD_STATUS].push(lead);
       }
     });
 
@@ -60,14 +55,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   // Calcular estadísticas
   const stats = React.useMemo(() => {
-    const totalValue = leads.reduce((sum, lead) => sum + (lead.vehicleAmount || 0), 0);
+    const valueToInvoice = leadsByStatus['Por Facturar'].reduce((sum, lead) => sum + (lead.vehicleAmount || 0), 0);
     const wonLeads = leadsByStatus['Facturado'].length;
     const totalLeads = leads.length;
     const conversionRate = totalLeads > 0 ? (wonLeads / totalLeads) * 100 : 0;
 
     return {
       totalLeads,
-      totalValue,
+      valueToInvoice,
       wonLeads,
       conversionRate,
     };
@@ -91,8 +86,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         </div>
         
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-          <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Valor Pipeline</div>
-          <div className="text-2xl font-bold text-secondary mt-1">{formatCurrency(stats.totalValue)}</div>
+          <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Valor por Facturar</div>
+          <div className="text-2xl font-bold text-secondary mt-1">{formatCurrency(stats.valueToInvoice)}</div>
         </div>
         
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
@@ -117,7 +112,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
         <div className="overflow-x-auto">
           <div className="flex gap-4 pb-4">
-            {KANBAN_COLUMNS.map((column) => (
+            {ALL_KANBAN_COLUMNS.map((column) => (
               <KanbanColumn
                 key={column.status}
                 title={column.title}
@@ -127,6 +122,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 color={column.color}
                 onLeadClick={onLeadClick}
                 onDrop={onStatusChange}
+                alertsByLeadId={alertsByLeadId}
               />
             ))}
           </div>

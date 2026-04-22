@@ -6,6 +6,7 @@ import { Input } from '../components/Input';
 import { Modal } from '../components/Modal';
 import { exportToCSV, exportToJSON, exportToExcel } from '../utils/export';
 import { unifiedLeadsService } from '../services/unifiedLeads';
+import { DEFAULT_LEAD_STATUS } from '../utils/leadStatus';
 
 interface LeadsPageProps {
   leads: Lead[];
@@ -42,7 +43,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     idNumber: '',
     maritalStatus: '',
     modelo: '',
-    status: 'Por Facturar' as Lead['status'],
+    status: DEFAULT_LEAD_STATUS as Lead['status'],
     fuente: 'Web' as Lead['fuente'],
     vehicleAmount: '',
     downPaymentPct: '',
@@ -65,7 +66,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
       idNumber: '',
       maritalStatus: '',
       modelo: '',
-      status: 'Por Facturar',
+      status: DEFAULT_LEAD_STATUS,
       fuente: 'Web',
       vehicleAmount: '',
       downPaymentPct: '',
@@ -123,7 +124,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
       status: formData.status,
       fuente: formData.fuente,
       prioridad: 'Media' as const, // Campo requerido con tipo correcto
-      fechaCreacion: new Date().toISOString().split('T')[0],
+      fechaCreacion: new Date().toISOString(),
       ultimaInteraccion: new Date().toISOString().split('T')[0],
       // Información del vehículo/préstamo
       vehicleAmount: formData.vehicleAmount ? parseFloat(formData.vehicleAmount) : 0,
@@ -301,7 +302,8 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
-                        lead.status === 'Por Facturar' ? 'bg-primary/10 text-primary' :
+                        lead.status === 'Por Contactar' ? 'bg-primary/10 text-primary' :
+                        lead.status === 'Por Facturar' ? 'bg-violet-100 text-violet-800' :
                         lead.status === 'Facturado' ? 'bg-secondary-light text-secondary' :
                         lead.status === 'Seguimiento' ? 'bg-yellow-50 text-yellow-700' :
                         lead.status === 'Caido' ? 'bg-red-50 text-red-700' :

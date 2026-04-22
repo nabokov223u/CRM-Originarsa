@@ -11,6 +11,7 @@ export default function CrmDashboard() {
   }, []);
 
   const grouped = {
+    "Por Contactar": leads.filter(l => l.status === "Por Contactar"),
     "Por Facturar": leads.filter(l => l.status === "Por Facturar"),
     "Facturado": leads.filter(l => l.status === "Facturado"),
     "Seguimiento": leads.filter(l => l.status === "Seguimiento"),

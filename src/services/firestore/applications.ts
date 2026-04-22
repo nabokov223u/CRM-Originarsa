@@ -1,5 +1,6 @@
 import { 
   collection, 
+  deleteDoc,
   getDocs,
   query,
   orderBy,
@@ -8,6 +9,7 @@ import {
   updateDoc
 } from "firebase/firestore";
 import { db } from "../../lib/firebase";
+import { LEAD_STATUS_SCHEMA_VERSION } from '../../utils/leadStatus';
 
 // Interfaz para los datos de CrediExpress (estructura real)
 export interface Application {
@@ -25,8 +27,9 @@ export interface Application {
     termMonths: number;
     vehicleAmount: number;
   };
-  status: "approved" | "rejected" | "pending" | "denied" | "review";
-  crmStatus?: string; // Estado del CRM independiente (Nuevo, Contactado, etc.)
+  status: "approved" | "rejected" | "pending" | "denied" | "review"; // Decisión crediticia/original de CrediExpress
+  crmStatus?: string; // Estado comercial del CRM, separado de la decisión crediticia
+  crmStatusVersion?: number;
   createdAt: any;
   updatedAt: any;
   // Campos adicionales que puede tener CrediExpress
@@ -71,6 +74,7 @@ export const applicationsService = {
           },
           status: data.status || "pending",
           crmStatus: data.crmStatus, // Estado del CRM
+          crmStatusVersion: data.crmStatusVersion,
           createdAt: data.createdAt,
           updatedAt: data.updatedAt,
           score: data.score,
@@ -113,6 +117,7 @@ export const applicationsService = {
           },
           status: data.status || "pending",
           crmStatus: data.crmStatus, // Estado del CRM
+          crmStatusVersion: data.crmStatusVersion,
           createdAt: data.createdAt,
           updatedAt: data.updatedAt,
           score: data.score,
@@ -146,7 +151,8 @@ export const applicationsService = {
     }
   },
 
-  // Actualizar estado de una application
+  // Actualizar decisión crediticia/original de una application.
+  // No usar para mover etapas del pipeline del CRM.
   async updateStatus(id: string, status: "approved" | "rejected" | "pending"): Promise<void> {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
@@ -167,6 +173,7 @@ export const applicationsService = {
       const docRef = doc(db, COLLECTION_NAME, id);
       await updateDoc(docRef, {
         crmStatus: crmStatus,
+        crmStatusVersion: LEAD_STATUS_SCHEMA_VERSION,
         updatedAt: new Date().toISOString(),
       });
       console.log(`✅ Application ${id} actualizada a CRM status: ${crmStatus}`);
@@ -199,6 +206,7 @@ export const applicationsService = {
           },
           status: data.status || "pending",
           crmStatus: data.crmStatus,
+          crmStatusVersion: data.crmStatusVersion,
           createdAt: data.createdAt,
           updatedAt: data.updatedAt,
           score: data.score,
@@ -228,6 +236,17 @@ export const applicationsService = {
       console.log(`✅ Application ${id} campos actualizados:`, Object.keys(fields));
     } catch (error) {
       console.error("Error actualizando campos de application:", error);
+      throw error;
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    try {
+      const docRef = doc(db, COLLECTION_NAME, id);
+      await deleteDoc(docRef);
+      console.log(`✅ Application ${id} eliminada correctamente`);
+    } catch (error) {
+      console.error('Error eliminando application:', error);
       throw error;
     }
   },

@@ -9,7 +9,7 @@ const leadsDeEjemplo: any[] = [
     email: 'juan.perez@email.com',
     cedula: '12345678',
     modelo: 'Toyota Corolla',
-    status: 'Por Facturar',
+    status: 'Por Contactar',
     fuente: 'Web',
     fechaCreacion: '2025-11-10',
     presupuesto: 50000000,
