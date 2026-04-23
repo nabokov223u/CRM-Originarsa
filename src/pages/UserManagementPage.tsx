@@ -1,7 +1,8 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useMemo } from 'react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { Users, RefreshCw, Pencil, X, Check, UserPlus, Shield, ShoppingBag, Info } from 'lucide-react';
 import app from '../lib/firebase';
+import { isExcludedCrmUserName } from '../utils/crmUsers';
 
 interface NewUser {
   email: string;
@@ -43,6 +44,11 @@ export function UserManagementPage() {
   useEffect(() => {
     loadUsers();
   }, []);
+
+  const visibleUsers = useMemo(
+    () => users.filter((user) => !isExcludedCrmUserName(user.displayName)),
+    [users],
+  );
 
   const loadUsers = async () => {
     setLoadingUsers(true);
@@ -278,7 +284,7 @@ export function UserManagementPage() {
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-primary text-sm">Usuarios Activos</h3>
             <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-              {users.length}
+              {visibleUsers.length}
             </span>
           </div>
         </div>
@@ -301,7 +307,7 @@ export function UserManagementPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
+                {visibleUsers.map((u) => (
                   <tr key={u.uid} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors">
                     <td className="px-6 py-4">
                       {editingUser === u.uid ? (

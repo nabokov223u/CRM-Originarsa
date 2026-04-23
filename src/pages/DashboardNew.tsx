@@ -5,6 +5,7 @@ import { applicationsService, type Application } from '../services/firestore/app
 import { leadAlertsService } from '../services/firestore/leadAlerts';
 import { useAuth } from '../hooks/useAuth';
 import { getApplicationCampaign, getLeadCampaign, sortCampaignNames } from '../utils/campaigns';
+import { isExcludedCrmUserName } from '../utils/crmUsers';
 import { formatCalendarDayInEcuador, getDateKeyInEcuador, getLeadEntryDate, getLeadEntryDateKey, getLeadEntryTimestamp, parseEcuadorDateInput, parseStoredDateTime } from '../utils/dateTime';
 import { getVisibleLeadAlerts } from '../utils/leadAlerts';
 import {
@@ -224,7 +225,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
 
   const asesoresUnicos = useMemo(() => {
     const set = new Set<string>();
-    allLeads.forEach(l => { if (l.asesor?.trim()) set.add(l.asesor.trim()); });
+    allLeads.forEach((lead) => {
+      const advisorName = lead.asesor?.trim();
+      if (advisorName && !isExcludedCrmUserName(advisorName)) {
+        set.add(advisorName);
+      }
+    });
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
   }, [allLeads]);
 

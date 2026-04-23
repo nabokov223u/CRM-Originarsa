@@ -14,6 +14,7 @@ import { getActivitiesByLead, createNoteActivity } from '../services/firestore/a
 import { exportToCSV, exportToJSON, exportToExcel } from '../utils/export';
 import { useAuth } from '../hooks/useAuth';
 import { getLeadCampaign, sortCampaignNames } from '../utils/campaigns';
+import { isExcludedCrmUserName } from '../utils/crmUsers';
 import { DEFAULT_LEAD_STATUS, PIPELINE_STATUSES } from '../utils/leadStatus';
 import { getVisibleLeadAlertMap } from '../utils/leadAlerts';
 import { formatLeadEntryDateTime } from '../utils/dateTime';
@@ -225,7 +226,12 @@ export const LeadsPageKanban: React.FC = () => {
   // Lista de asesores únicos para el filtro admin
   const asesoresUnicos = useMemo(() => {
     const set = new Set<string>();
-    leads.forEach(l => { if (l.asesor?.trim()) set.add(l.asesor.trim()); });
+    leads.forEach((lead) => {
+      const advisorName = lead.asesor?.trim();
+      if (advisorName && !isExcludedCrmUserName(advisorName)) {
+        set.add(advisorName);
+      }
+    });
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
   }, [leads]);
 
