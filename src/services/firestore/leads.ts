@@ -332,6 +332,24 @@ export const leadsService = {
     }
   },
 
+  async reassignAdvisor(id: string, advisorName: string): Promise<void> {
+    try {
+      const docRef = doc(db, COLLECTION_NAME, id);
+      await updateDoc(docRef, {
+        asesor: advisorName,
+        asignadoA: advisorName,
+        status: 'Por Contactar',
+        statusVersion: LEAD_STATUS_SCHEMA_VERSION,
+        porContactarStartedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+      console.log(`✅ Lead ${id} reasignado a ${advisorName} y reiniciado a Por Contactar`);
+    } catch (error) {
+      console.error('Error reasignando lead:', error);
+      throw error;
+    }
+  },
+
   // Actualizar prioridad
   async updatePriority(id: string, priority: LeadPriority): Promise<void> {
     try {

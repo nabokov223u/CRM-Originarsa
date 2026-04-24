@@ -6,7 +6,8 @@ import {
   orderBy,
   onSnapshot,
   doc,
-  updateDoc
+  updateDoc,
+  Timestamp
 } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { LEAD_STATUS_SCHEMA_VERSION } from '../../utils/leadStatus';
@@ -236,6 +237,23 @@ export const applicationsService = {
       console.log(`✅ Application ${id} campos actualizados:`, Object.keys(fields));
     } catch (error) {
       console.error("Error actualizando campos de application:", error);
+      throw error;
+    }
+  },
+
+  async reassignAdvisor(id: string, advisorName: string): Promise<void> {
+    try {
+      const docRef = doc(db, COLLECTION_NAME, id);
+      await updateDoc(docRef, {
+        asesor: advisorName,
+        crmStatus: 'Por Contactar',
+        crmStatusVersion: LEAD_STATUS_SCHEMA_VERSION,
+        porContactarStartedAt: Timestamp.now(),
+        updatedAt: new Date().toISOString(),
+      });
+      console.log(`✅ Application ${id} reasignada a ${advisorName} y reiniciada a Por Contactar`);
+    } catch (error) {
+      console.error('Error reasignando application:', error);
       throw error;
     }
   },

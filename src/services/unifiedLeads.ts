@@ -4,6 +4,7 @@ import { convertApplicationToLead } from '../utils/convertApplications';
 import type { Lead } from '../utils/types';
 import { getIdTokenResult } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+import { isExcludedCrmUserName } from '../utils/crmUsers';
 
 // Deduplicar applications de CrediExpress por cédula (idNumber).
 // Cuando hay múltiples solicitudes con la misma cédula, se conserva la más reciente.
@@ -27,15 +28,15 @@ function deduplicateApplications(apps: Application[]): Application[] {
   return Array.from(map.values());
 }
 
-async function ensureAdminAccess(): Promise<void> {
+async function ensureAdminAccess(action: string): Promise<void> {
   const currentUser = auth.currentUser;
   if (!currentUser) {
-    throw new Error('Debes iniciar sesión para eliminar leads.');
+    throw new Error(`Debes iniciar sesión para ${action}.`);
   }
 
   const tokenResult = await getIdTokenResult(currentUser);
   if (tokenResult.claims.admin !== true) {
-    throw new Error('Solo los administradores pueden eliminar leads.');
+    throw new Error(`Solo los administradores pueden ${action}.`);
   }
 }
 
@@ -136,12 +137,31 @@ export const unifiedLeadsService = {
   },
 
   async delete(id: string): Promise<void> {
-    await ensureAdminAccess();
+    await ensureAdminAccess('eliminar leads');
 
     if (this.isFromCrediExpress(id)) {
       return applicationsService.delete(this.getOriginalCrediExpressId(id));
     }
     return leadsService.delete(id);
+  },
+
+  async reassignLead(id: string, advisorName: string): Promise<void> {
+    await ensureAdminAccess('reasignar leads');
+
+    const trimmedAdvisorName = advisorName.trim();
+    if (!trimmedAdvisorName) {
+      throw new Error('Selecciona un asesor para reasignar el lead.');
+    }
+
+    if (isExcludedCrmUserName(trimmedAdvisorName)) {
+      throw new Error('Ese usuario no está disponible para asignación dentro del CRM.');
+    }
+
+    if (this.isFromCrediExpress(id)) {
+      return applicationsService.reassignAdvisor(this.getOriginalCrediExpressId(id), trimmedAdvisorName);
+    }
+
+    return leadsService.reassignAdvisor(id, trimmedAdvisorName);
   },
 
   // Actualizar estado comercial de una application en el CRM.

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { Lead, LeadAlert, LeadStatus, Actividad, ETIQUETAS_POR_ESTADO } from '../utils/types';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { LeadsTableView } from '../components/LeadsTableView';
@@ -14,15 +15,25 @@ import { getActivitiesByLead, createNoteActivity } from '../services/firestore/a
 import { exportToCSV, exportToJSON, exportToExcel } from '../utils/export';
 import { useAuth } from '../hooks/useAuth';
 import { getLeadCampaign, sortCampaignNames } from '../utils/campaigns';
-import { isExcludedCrmUserName } from '../utils/crmUsers';
+import app from '../lib/firebase';
+import { isExcludedCrmUserName, normalizeCrmUserName } from '../utils/crmUsers';
 import { DEFAULT_LEAD_STATUS, PIPELINE_STATUSES } from '../utils/leadStatus';
 import { getVisibleLeadAlertMap } from '../utils/leadAlerts';
 import { formatLeadEntryDateTime } from '../utils/dateTime';
 import { leadAlertsService } from '../services/firestore/leadAlerts';
 import { LayoutGrid, List, Search, Download, ChevronDown } from 'lucide-react';
 
+interface AssignableUser {
+  uid: string;
+  email: string;
+  displayName: string;
+  disabled: boolean;
+  customClaims: Record<string, unknown>;
+}
+
 export const LeadsPageKanban: React.FC = () => {
   const { user, isAdmin } = useAuth();
+  const functions = getFunctions(app);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [activeAlerts, setActiveAlerts] = useState<LeadAlert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +41,10 @@ export const LeadsPageKanban: React.FC = () => {
   const [leadActivities, setLeadActivities] = useState<Actividad[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+  const [assignableUsers, setAssignableUsers] = useState<AssignableUser[]>([]);
+  const [loadingAssignableUsers, setLoadingAssignableUsers] = useState(false);
+  const [selectedAdvisor, setSelectedAdvisor] = useState('');
+  const [reassigningLead, setReassigningLead] = useState(false);
   
   // Estado para búsqueda
   const [searchQuery, setSearchQuery] = useState('');
@@ -96,6 +111,38 @@ export const LeadsPageKanban: React.FC = () => {
       unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setAssignableUsers([]);
+      return;
+    }
+
+    const loadAssignableUsers = async () => {
+      setLoadingAssignableUsers(true);
+      try {
+        const listUsers = httpsCallable(functions, 'listUsers');
+        const result = await listUsers({});
+        const data = result.data as { users: AssignableUser[] };
+        const visibleUsers = data.users
+          .filter((crmUser) => !crmUser.disabled)
+          .filter((crmUser) => crmUser.displayName?.trim())
+          .filter((crmUser) => !isExcludedCrmUserName(crmUser.displayName))
+          .sort((a, b) => a.displayName.localeCompare(b.displayName, 'es'));
+        setAssignableUsers(visibleUsers);
+      } catch (error) {
+        console.error('Error cargando asesores para reasignación:', error);
+      } finally {
+        setLoadingAssignableUsers(false);
+      }
+    };
+
+    loadAssignableUsers();
+  }, [functions, isAdmin]);
+
+  useEffect(() => {
+    setSelectedAdvisor(selectedLead?.asesor?.trim() || '');
+  }, [selectedLead]);
 
   const loadActivities = async (leadId: string) => {
     try {
@@ -164,7 +211,6 @@ export const LeadsPageKanban: React.FC = () => {
         phone: selectedLead.phone,
         email: selectedLead.email,
         origen: selectedLead.origen || '',
-        asesor: selectedLead.asesor || '',
         vehiculoInteres: selectedLead.vehiculoInteres || '',
         observaciones: selectedLead.observaciones || '',
       });
@@ -188,6 +234,51 @@ export const LeadsPageKanban: React.FC = () => {
     } catch (error) {
       console.error('Error actualizando lead:', error);
       alert('Error al guardar los cambios');
+    }
+  };
+
+  const handleReassignLead = async () => {
+    if (!selectedLead || !isAdmin) return;
+
+    const nextAdvisor = selectedAdvisor.trim();
+    if (!nextAdvisor) {
+      alert('Selecciona un asesor para reasignar el lead.');
+      return;
+    }
+
+    if (normalizeCrmUserName(nextAdvisor) === normalizeCrmUserName(selectedLead.asesor || '')) {
+      alert('Selecciona un asesor diferente para completar la reasignación.');
+      return;
+    }
+
+    const previousAdvisor = selectedLead.asesor?.trim() || 'Sin asignar';
+    const actorName = user?.displayName || 'Administrador';
+
+    try {
+      setReassigningLead(true);
+      await unifiedLeadsService.reassignLead(selectedLead.id, nextAdvisor);
+      await createNoteActivity(
+        selectedLead.id,
+        'Lead reasignado',
+        `Lead reasignado de "${previousAdvisor}" a "${nextAdvisor}" y reiniciado a "Por Contactar".`,
+        actorName,
+      );
+
+      setSelectedLead((prev) => prev ? {
+        ...prev,
+        asesor: nextAdvisor,
+        asignadoA: nextAdvisor,
+        status: 'Por Contactar',
+      } : null);
+      setSelectedAdvisor(nextAdvisor);
+      loadActivities(selectedLead.id);
+      setIsEditing(false);
+      console.log('✅ Lead reasignado correctamente');
+    } catch (error) {
+      console.error('Error reasignando lead:', error);
+      alert('Error al reasignar el lead. ' + (error as Error).message);
+    } finally {
+      setReassigningLead(false);
     }
   };
 
@@ -293,6 +384,20 @@ export const LeadsPageKanban: React.FC = () => {
   );
 
   const selectedLeadAlert = selectedLead ? visibleAlertsByLeadId[selectedLead.id] : undefined;
+  const advisorOptions = useMemo(() => {
+    const advisorNames = assignableUsers.map((crmUser) => crmUser.displayName.trim()).filter(Boolean);
+    const currentAdvisor = selectedLead?.asesor?.trim();
+
+    if (
+      currentAdvisor &&
+      !isExcludedCrmUserName(currentAdvisor) &&
+      !advisorNames.some((advisorName) => normalizeCrmUserName(advisorName) === normalizeCrmUserName(currentAdvisor))
+    ) {
+      advisorNames.unshift(currentAdvisor);
+    }
+
+    return advisorNames;
+  }, [assignableUsers, selectedLead]);
 
   // Exportar leads
   const handleExport = (format: 'csv' | 'json' | 'excel') => {
@@ -579,6 +684,46 @@ export const LeadsPageKanban: React.FC = () => {
           title={`Lead: ${selectedLead.fullName}`}
         >
           <div className="space-y-6">
+            {isAdmin && (
+              <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+                      Reasignar Lead
+                    </label>
+                    <select
+                      value={selectedAdvisor}
+                      onChange={(e) => setSelectedAdvisor(e.target.value)}
+                      disabled={loadingAssignableUsers || reassigningLead}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary text-sm bg-white disabled:bg-gray-50"
+                    >
+                      <option value="">Selecciona un asesor</option>
+                      {advisorOptions.map((advisorName) => (
+                        <option key={advisorName} value={advisorName}>
+                          {advisorName}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Al reasignarlo, el lead pasa automáticamente a Por Contactar y reinicia su SLA de primer contacto.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleReassignLead}
+                    variant="primary"
+                    disabled={
+                      loadingAssignableUsers ||
+                      reassigningLead ||
+                      !selectedAdvisor.trim() ||
+                      normalizeCrmUserName(selectedAdvisor) === normalizeCrmUserName(selectedLead.asesor || '')
+                    }
+                  >
+                    {reassigningLead ? 'Reasignando...' : 'Reasignar'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Botón editar / guardar */}
             <div className="flex justify-end gap-2">
               {!selectedLead.id.startsWith('crediexpress_') && (
@@ -642,12 +787,12 @@ export const LeadsPageKanban: React.FC = () => {
                     onChange={(val) => setEditForm({...editForm, origen: val})}
                     placeholder="Ej: Facebook Ads, Google, n8n"
                   />
-                  <Input
-                    label="Asesor a Cargo"
-                    value={editForm.asesor || ''}
-                    onChange={(val) => setEditForm({...editForm, asesor: val})}
-                    placeholder="Nombre del asesor"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Asesor a Cargo</label>
+                    <div className="w-full px-3 py-2 border border-gray-100 rounded-lg bg-gray-50 text-sm text-gray-500">
+                      {selectedLead.asesor || 'Sin asignar'}
+                    </div>
+                  </div>
                 </div>
                 <Input
                   label="Vehículo de Interés"

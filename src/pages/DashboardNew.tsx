@@ -445,6 +445,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads: externalLeads }) =>
     const m: Record<string, Record<string, number>> = {};
     leadsFiltered.forEach(l => {
       const a = (l.asesor || 'Sin asignar').trim();
+      if (isExcludedCrmUserName(a)) return;
       if (!m[a]) m[a] = {};
       m[a][l.status] = (m[a][l.status] || 0) + 1;
     });
