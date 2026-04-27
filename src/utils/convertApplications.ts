@@ -1,6 +1,55 @@
 import type { Application } from '../services/firestore/applications';
 import type { Lead } from './types';
+import { getApplicationCampaign } from './campaigns';
 import { DEFAULT_LEAD_STATUS, normalizeLeadStatus } from './leadStatus';
+
+const ECUADOR_OFFSET = '-05:00';
+
+function padDatePart(value: number, length = 2): string {
+  return String(value).padStart(length, '0');
+}
+
+function getApplicationCreatedAtDate(value: Application['createdAt']): Date | null {
+  if (value && typeof value === 'object' && 'toDate' in value && typeof (value as { toDate?: unknown }).toDate === 'function') {
+    const date = (value as { toDate: () => Date }).toDate();
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value === 'string') {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  return null;
+}
+
+function normalizeApplicationCreatedAt(
+  value: Application['createdAt'],
+  preserveWallClockTime: boolean,
+): { createdAt: Date; fechaCreacion: string } {
+  const rawDate = getApplicationCreatedAtDate(value) ?? new Date();
+
+  if (!preserveWallClockTime) {
+    return {
+      createdAt: rawDate,
+      fechaCreacion: rawDate.toISOString(),
+    };
+  }
+
+  // Las applications llegan con el reloj correcto en createdAt, pero al interpretarlas
+  // como UTC y luego formatearlas en Ecuador se restan 5 horas. Reconstituimos la
+  // fecha como hora local de Ecuador para preservar el wall-clock del origen.
+  const fechaCreacion = `${rawDate.getUTCFullYear()}-${padDatePart(rawDate.getUTCMonth() + 1)}-${padDatePart(rawDate.getUTCDate())}T${padDatePart(rawDate.getUTCHours())}:${padDatePart(rawDate.getUTCMinutes())}:${padDatePart(rawDate.getUTCSeconds())}.${padDatePart(rawDate.getUTCMilliseconds(), 3)}${ECUADOR_OFFSET}`;
+
+  return {
+    createdAt: new Date(fechaCreacion),
+    fechaCreacion,
+  };
+}
 
 // Función para convertir una Application de CrediExpress a Lead del CRM
 export function convertApplicationToLead(application: Application): Omit<Lead, 'id'> {
@@ -20,11 +69,9 @@ export function convertApplicationToLead(application: Application): Omit<Lead, '
     status = DEFAULT_LEAD_STATUS;
   }
 
-  // Crear fecha de creación
-  let fechaCreacion = new Date().toISOString();
-  if (application.createdAt && application.createdAt.toDate) {
-    fechaCreacion = application.createdAt.toDate().toISOString();
-  }
+  const shouldPreserveWallClockTime = getApplicationCampaign(application) !== 'CrediExpress';
+  const normalizedCreatedAt = normalizeApplicationCreatedAt(application.createdAt, shouldPreserveWallClockTime);
+  const fechaCreacion = normalizedCreatedAt.fechaCreacion;
 
   // Construir notas con información del crédito
   const notasArray = [];
@@ -79,7 +126,7 @@ export function convertApplicationToLead(application: Application): Omit<Lead, '
     ultimaNota: application.ultimaNota,
     
     // Firebase
-    createdAt: application.createdAt,
+    createdAt: normalizedCreatedAt.createdAt,
     updatedAt: application.updatedAt,
     
     // CAMPOS DEPRECATED (para compatibilidad)
